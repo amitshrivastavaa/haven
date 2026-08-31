@@ -393,7 +393,7 @@ export function grenz(config: GrenzConfig = {}): GrenzInstance {
       untrustedContent: tool.annotations?.untrustedContentHint === true,
       // Only for foreign tools: a site reading back its own descriptions is
       // noise, but what a third-party script told the agent is evidence.
-      ...(foreign ? { description: tool.description } : {}),
+      ...(foreign ? { description: tool.description, requestedFields: inputFields(tool) } : {}),
     });
 
     return { ...tool, execute: governed };
@@ -465,4 +465,16 @@ export function grenz(config: GrenzConfig = {}): GrenzInstance {
   };
 
   return api;
+}
+
+/**
+ * The top-level property names of a tool's input schema, if it has any.
+ * Deliberately shallow: the human reading the timeline needs to see that a
+ * "diagnostics" tool asks for an alarm code, not to audit a JSON Schema.
+ */
+function inputFields(tool: ToolDescriptor): readonly string[] | undefined {
+  const props = (tool.inputSchema as { properties?: Record<string, unknown> } | undefined)?.properties;
+  if (!props) return undefined;
+  const names = Object.keys(props);
+  return names.length > 0 ? names : undefined;
 }

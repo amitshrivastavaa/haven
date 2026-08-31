@@ -410,6 +410,7 @@ function renderRow(e: TimelineEvent): HTMLElement {
   // safety, so it is worth a colour whether or not the tool is otherwise
   // doubted — the content is untrusted either way.
   if (e.untrustedContent) flags.push(el("span", "flag warn", "untrusted content"));
+  if (e.requestedFields?.length) flags.push(el("span", "flag warn", `asks for ${e.requestedFields.length} field${e.requestedFields.length === 1 ? "" : "s"}`));
   if (e.reason) flags.push(el("span", "flag", e.reason));
   if (flags.length) {
     const bar = el("div", "flags");
@@ -422,6 +423,15 @@ function renderRow(e: TimelineEvent): HTMLElement {
     details.append(el("summary", undefined, "what the agent was told"));
     const quote = el("pre");
     quote.textContent = e.description;
+    details.append(quote);
+    row.append(details);
+  }
+
+  if (e.requestedFields?.length) {
+    const details = document.createElement("details");
+    details.append(el("summary", undefined, "what the agent was asked to provide"));
+    const quote = el("pre");
+    quote.textContent = e.requestedFields.join("\n");
     details.append(quote);
     row.append(details);
   }

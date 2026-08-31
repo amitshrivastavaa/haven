@@ -118,6 +118,14 @@ export interface TimelineEvent {
    * invisible to the human: the agent reads it, the user never does.
    */
   readonly description?: string;
+  /**
+   * Top-level input fields a third-party tool asked the agent to supply.
+   * The spec calls over-parameterization a privacy threat in its own right —
+   * a schema can sweet-talk an agent into volunteering things the task never
+   * needed. Like `description`, this is recorded only for foreign tools: what
+   * a site asks its own tools for is not evidence of anything.
+   */
+  readonly requestedFields?: readonly string[];
 }
 
 /** What a denied call resolves with. Never a rejection — see README. */
