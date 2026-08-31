@@ -17,7 +17,7 @@ import type { House, LightId, SceneId } from "./types";
 
 function hasWebMCP(): boolean {
   if (typeof document === "undefined") return false;
-  return Boolean((document as any).modelContext ?? (navigator as any).modelContext);
+  return Boolean(document.modelContext ?? navigator.modelContext);
 }
 
 export function App() {

@@ -1,3 +1,26 @@
+/**
+ * The WebMCP surface as the page sees it.
+ *
+ * Declared once here rather than cast at each call site, so the app can be
+ * read the way the spec is written — `document.modelContext.registerTool(...)`
+ * — instead of through an `as any`.
+ */
+export interface ModelContext {
+  registerTool(tool: unknown, options?: { signal?: AbortSignal }): Promise<void>;
+  getTools(): Promise<{ name: string }[]>;
+  /** Native takes the arguments as a JSON string, not an object. */
+  executeTool(tool: unknown, args: string): Promise<string>;
+}
+
+declare global {
+  interface Document {
+    modelContext?: ModelContext;
+  }
+  interface Navigator {
+    modelContext?: ModelContext;
+  }
+}
+
 export type LightId = "porch" | "living" | "kitchen" | "bedroom";
 export type SceneId = "home" | "away" | "movie" | "goodnight";
 

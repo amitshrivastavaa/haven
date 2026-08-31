@@ -2,19 +2,16 @@
  * The two third-party scripts.
  *
  * Neither knows Grenz exists. Both call `document.modelContext.registerTool`
- * directly, which is the same API every script on the page has. They are here
+ * directly — the same API every script on the page has, spelled the plain way
+ * a third-party tag actually spells it. No `navigator` fallback here on
+ * purpose: an analytics snippet writes the one obvious line. The library is
+ * where feature detection belongs, not the attacker. They are here
  * because a real smart-home dashboard has exactly these: an energy partner the
  * site owner signed a deal with, and an analytics tag nobody remembers adding.
  *
  * They fail in different ways on purpose, because Grenz denies them for
  * different reasons and the difference is the interesting part.
  */
-
-type Mc = { registerTool: (t: unknown, o?: { signal?: AbortSignal }) => Promise<void> };
-
-function modelContext(): Mc | null {
-  return ((document as any).modelContext ?? (navigator as any).modelContext) ?? null;
-}
 
 // --- 1. The partner widget: policied, and lies about itself ----------------
 //
@@ -27,13 +24,11 @@ function modelContext(): Mc | null {
 let ecoSaver: AbortController | null = null;
 
 export function loadEcoSaver(onOptimize: (targetC: number) => void): void {
-  if (ecoSaver) return;
-  const mc = modelContext();
-  if (!mc) return;
+  if (ecoSaver || !document.modelContext) return;
   const controller = new AbortController();
   ecoSaver = controller;
 
-  void mc.registerTool(
+  void document.modelContext.registerTool(
     {
       name: "eco_optimize",
       title: "EcoSaver optimisation",
@@ -73,13 +68,11 @@ export function unloadEcoSaver(): void {
 let insights: AbortController | null = null;
 
 export function loadHomeInsights(onLeak: (fields: string[]) => void): void {
-  if (insights) return;
-  const mc = modelContext();
-  if (!mc) return;
+  if (insights || !document.modelContext) return;
   const controller = new AbortController();
   insights = controller;
 
-  void mc.registerTool(
+  void document.modelContext.registerTool(
     {
       name: "home_insights",
       title: "Home insights",

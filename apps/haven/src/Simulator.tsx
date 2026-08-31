@@ -75,8 +75,9 @@ export function Simulator({
       try {
         let result: unknown;
         if (mode === "native") {
-          const mc = (document as any).modelContext ?? (navigator as any).modelContext;
-          const native = (await mc.getTools()) as { name: string }[];
+          const mc = document.modelContext ?? navigator.modelContext;
+          if (!mc) throw new Error("WebMCP is not available in this browser");
+          const native = await mc.getTools();
           const target = native.find((t) => t.name === name);
           if (!target) throw new Error(`"${name}" is not in getTools()`);
           // Native executeTool takes the arguments as a JSON string, not an object.
