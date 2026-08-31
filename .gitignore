@@ -1,0 +1,7 @@
+node_modules
+dist
+.DS_Store
+*.local
+packages/grenz-webmcp/spike/spike.js
+packages/grenz-webmcp/spike/grenz-install.js
+apps/demo/public/grenz-install.js

@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>running…</title>
+    <style>
+      body { font: 14px ui-monospace, monospace; padding: 24px; }
+      li { margin: 3px 0; }
+      .pass { color: #15803d; }
+      .fail { color: #b91c1c; font-weight: 700; }
+    </style>
+
+    <!-- 1. Stand in for the browser's native WebMCP. A real class with a real
+         prototype, present before any other script — exactly the shape Chrome
+         presents. The takeover must derive the prototype from this instance. -->
+    <script>
+      class ModelContextPolyfill {
+        constructor() { this.tools = new Map(); }
+        async registerTool(tool, options) {
+          if (this.tools.has(tool.name)) throw new Error("duplicate tool: " + tool.name);
+          this.tools.set(tool.name, tool);
+          options?.signal?.addEventListener("abort", () => this.tools.delete(tool.name), { once: true });
+        }
+        async getTools() { return [...this.tools.values()]; }
+        async executeTool(tool, input) {
+          const out = await tool.execute(input, { signal: new AbortController().signal });
+          return JSON.stringify(out);
+        }
+      }
+      document.modelContext = new ModelContextPolyfill();
+
+      // Test harness.
+      const results = [];
+      window.__spike = (name, pass, detail) => results.push({ name, pass, detail });
+      window.__spikeDone = () => {
+        const failed = results.filter((r) => !r.pass).length;
+        document.title = failed === 0 ? `ALL ${results.length} PASS` : `${failed} FAIL`;
+        document.body.innerHTML =
+          "<h1>" + document.title + "</h1><ul>" +
+          results.map((r) =>
+            `<li class="${r.pass ? "pass" : "fail"}">${r.pass ? "PASS" : "FAIL"} — ${r.name}` +
+            (r.detail && !r.pass ? `<br><small>${r.detail}</small>` : "") + "</li>").join("") +
+          "</ul>";
+      };
+    </script>
+
+    <!-- 2. Grenz claims the registration surface. Classic script, synchronous,
+         a separate bundle from the app below — the real deployment shape. -->
+    <script src="./grenz-install.js"></script>
+
+  </head>
+  <body>
+    <p>running…</p>
+
+    <!-- 3. The app: attaches the policy, then a third party registers. -->
+    <script src="./spike.js"></script>
+  </body>
+</html>

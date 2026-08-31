@@ -1,0 +1,31 @@
+{
+  "name": "grenz-webmcp",
+  "version": "0.1.0",
+  "description": "Deny-by-default policy layer for WebMCP tools: registration takeover, human approval, audit timeline.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": [
+    "./src/install.ts"
+  ],
+  "exports": {
+    ".": "./src/index.ts",
+    "./react": "./src/react.tsx",
+    "./install": "./src/install.ts"
+  },
+  "files": [
+    "src",
+    "dist"
+  ],
+  "scripts": {
+    "build": "bun build ./src/install.ts --outfile=./dist/grenz-install.js --format=iife --target=browser --minify",
+    "spike": "bun build ./spike/spike.ts --outfile=./spike/spike.js --format=iife --target=browser && bun run build && cp dist/grenz-install.js spike/grenz-install.js && echo 'Now serve ./spike and open takeover-spike.html'"
+  },
+  "keywords": [
+    "webmcp",
+    "modelcontext",
+    "mcp",
+    "policy",
+    "security",
+    "agent"
+  ]
+}

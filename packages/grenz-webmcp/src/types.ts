@@ -1,0 +1,157 @@
+/**
+ * Public types for grenz-webmcp.
+ *
+ * Vocabulary is deliberately shared with the Grenz core policy engine
+ * (`proxy/src/policy/types.ts` in the grenz repo): the same `Decision` union
+ * and the same `ReasonCode` strings, so a browser timeline and a server audit
+ * log describe the same event with the same word. Core is NOT a dependency —
+ * it is server-side. Only the vocabulary travels.
+ */
+
+/** The three terminal decisions a policy can produce. Verbatim from core. */
+export type Decision = "allow" | "deny" | "require_approval";
+
+/**
+ * Structured, machine-readable reason codes. Safe to log and safe to hand to
+ * an agent: none of them ever carry a value drawn from request data.
+ */
+export type ReasonCode =
+  // --- adopted verbatim from Grenz core ---
+  | "explicit_allow"
+  | "explicit_deny"
+  | "approval_required"
+  | "no_matching_allow"
+  | "approval_granted"
+  | "approval_denied"
+  | "approval_expired"
+  | "approval_abandoned"
+  | "approval_remembered_grant"
+  // --- browser-only, no core equivalent ---
+  /** Registration's `readOnlyHint` contradicts the site's own classification. */
+  | "annotation_mismatch"
+  /** An argument violated a policy constraint. */
+  | "constraint"
+  /** Sliding-window rate limit exceeded. */
+  | "rate_limit"
+  /** Protection was switched off; the call ran ungoverned. Timeline-only. */
+  | "unprotected";
+
+/** Config sugar. `approve` is the author-facing spelling of `require_approval`. */
+export type ToolAction = "allow" | "deny" | "approve";
+
+/** Per-argument constraints, checked against the agent's input before execute. */
+export interface Constraint {
+  readonly maxLength?: number;
+  readonly minLength?: number;
+  readonly enum?: readonly (string | number)[];
+  readonly min?: number;
+  readonly max?: number;
+  /** Anchored implicitly: the whole value must match. */
+  readonly pattern?: string;
+  readonly required?: boolean;
+}
+
+export interface RateLimit {
+  readonly calls: number;
+  readonly per: "second" | "minute" | "hour";
+}
+
+export interface ToolPolicy {
+  readonly action: ToolAction;
+  /**
+   * Plain-language consequence, shown to the human on the approval card. Its
+   * presence is also the site's declaration that this tool WRITES — which is
+   * what an `readOnlyHint: true` registration would contradict.
+   */
+  readonly effect?: string;
+  readonly constraints?: Readonly<Record<string, Constraint>>;
+  readonly rateLimit?: RateLimit;
+}
+
+export interface GrenzConfig {
+  /** Anything not named in `tools` takes this. Default: "deny". */
+  readonly defaultAction?: "deny" | "allow";
+  readonly tools?: Readonly<Record<string, ToolPolicy>>;
+  readonly approval?: { readonly timeoutMs?: number };
+  /** Host-app hook, called for every timeline event as it is appended. */
+  readonly onEvent?: (event: TimelineEvent) => void;
+  /** Injected for tests. Defaults to `Date.now`. */
+  readonly clock?: () => number;
+  /**
+   * Injected for tests. Returns a cancel function. Defaults to `setTimeout`.
+   * Injected rather than fake-timed because Bun's fake timers are partial.
+   */
+  readonly scheduler?: (fn: () => void, ms: number) => () => void;
+}
+
+export type EventKind = "register" | "call" | "grant";
+
+export interface TimelineEvent {
+  readonly id: string;
+  readonly at: number;
+  readonly kind: EventKind;
+  readonly tool: string;
+  /** "unprotected" is not a Decision — the pipeline did not run. */
+  readonly decision: Decision | "unprotected";
+  readonly reason: ReasonCode;
+  /** Human-readable, shown in the timeline UI. */
+  readonly message: string;
+  /** The agent's arguments, as given. Absent on `register` events. */
+  readonly input?: unknown;
+  /** Truncated JSON of the tool's own result, on a successful execute. */
+  readonly result?: string;
+  /** Registered without going through `g.registerTool` — i.e. via the takeover. */
+  readonly foreign?: boolean;
+  /** The tool's registration claimed `readOnlyHint: true`. */
+  readonly claimedReadOnly?: boolean;
+  /**
+   * The tool declared `untrustedContentHint: true` — its result may carry
+   * content the site does not vouch for. The spec names this as a mitigation
+   * ("Untrusted Annotation for Tool Responses") but leaves acting on it to the
+   * client, which means the human never sees it. Here they do.
+   */
+  readonly untrustedContent?: boolean;
+  /**
+   * The description the agent was given, recorded for third-party
+   * registrations. Tool metadata is an injection surface in its own right
+   * (arXiv:2606.06387 calls this "Tool Framing"), and it is otherwise
+   * invisible to the human: the agent reads it, the user never does.
+   */
+  readonly description?: string;
+}
+
+/** What a denied call resolves with. Never a rejection — see README. */
+export interface GrenzDenial {
+  readonly grenz: {
+    readonly decision: "deny";
+    readonly reason: ReasonCode;
+    readonly message: string;
+  };
+}
+
+// --- WebMCP surface (structural; the spec's own types are not shipped yet) ---
+
+export interface ToolAnnotations {
+  readonly readOnlyHint?: boolean;
+  readonly untrustedContentHint?: boolean;
+}
+
+export interface ToolDescriptor {
+  readonly name: string;
+  readonly title?: string;
+  readonly description: string;
+  readonly inputSchema?: object;
+  execute: (input: any, ctx: { signal: AbortSignal }) => Promise<unknown>;
+  readonly annotations?: ToolAnnotations;
+}
+
+export interface RegisterOptions {
+  readonly signal?: AbortSignal;
+  readonly exposedTo?: string[];
+}
+
+export interface ModelContextLike {
+  registerTool(tool: ToolDescriptor, options?: RegisterOptions): Promise<void>;
+  getTools?: () => Promise<unknown[]>;
+  executeTool?: (tool: unknown, input?: unknown) => Promise<string>;
+}

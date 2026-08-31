@@ -1,0 +1,16 @@
+# Static deploy of the demo app. No backend, no environment secrets.
+
+[build]
+  command = "bun install --frozen-lockfile && cd apps/demo && bun run build"
+  publish = "apps/demo/dist"
+
+[build.environment]
+  BUN_VERSION = "1.3.14"
+
+# grenz-install.js must never be served stale: it is the script that claims the
+# registration surface, and a cached copy from a previous deploy would attach a
+# different pipeline than the app bundle expects.
+[[headers]]
+  for = "/grenz-install.js"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
