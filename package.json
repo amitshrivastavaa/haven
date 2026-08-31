@@ -2,12 +2,17 @@
   "name": "grenz-webmcp-monorepo",
   "private": true,
   "type": "module",
-  "workspaces": ["packages/*", "apps/*"],
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
   "scripts": {
-    "dev": "bun --filter @grenz/demo dev",
-    "build": "bun --filter grenz-webmcp build && bun --filter @grenz/demo build",
+    "dev": "bun --filter @grenz/haven dev",
+    "build": "bun --filter grenz-webmcp build && bun --filter @grenz/haven build",
     "test": "bun test",
-    "typecheck": "tsc --noEmit -p packages/grenz-webmcp && tsc --noEmit -p apps/demo"
+    "typecheck": "tsc --noEmit -p packages/grenz-webmcp && tsc --noEmit -p apps/haven && tsc --noEmit -p apps/demo",
+    "dev:demo": "bun --filter @grenz/demo dev",
+    "build:demo": "bun --filter grenz-webmcp build && bun --filter @grenz/demo build"
   },
   "devDependencies": {
     "@types/bun": "^1.4.0",
