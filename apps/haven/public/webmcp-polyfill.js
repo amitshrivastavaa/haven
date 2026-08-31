@@ -44,7 +44,19 @@
     async executeTool(tool, input) {
       const target = typeof tool === "string" ? this.tools.get(tool) : tool;
       if (!target) throw new Error("no such tool");
-      const out = await target.execute(input ?? {}, { signal: new AbortController().signal });
+      // Chrome's implementation takes the arguments as a JSON STRING and parses
+      // them before calling execute. Objects are tolerated here only so an
+      // older caller does not silently break; native would reject them with
+      // "Failed to parse input arguments".
+      let args = input ?? {};
+      if (typeof args === "string") {
+        try {
+          args = JSON.parse(args || "{}");
+        } catch {
+          throw new Error("Failed to parse input arguments");
+        }
+      }
+      const out = await target.execute(args, { signal: new AbortController().signal });
       return JSON.stringify(out);
     }
   }

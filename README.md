@@ -255,8 +255,11 @@ bun run typecheck
 ```
 
 **In a WebMCP browser:** open the demo in ChatGPT's in-app browser, or in Chrome
-with `chrome://flags/#enable-webmcp-testing` enabled, and ask the agent to find a
-frontend role and apply.
+with `chrome://flags/#enable-webmcp-testing` enabled, and ask the agent to catch
+up on the front door.
+
+Note that WebMCP is **secure-context only**: `document.modelContext` is absent on
+`about:blank` and on plain-HTTP origins other than localhost, flag or no flag.
 
 **Without one:** the demo detects the absence, explains it in a banner, and opens
 the simulator, which drives the same governed tools from Grenz's own registry.
@@ -279,11 +282,21 @@ the app bundle, and asserts the whole chain — interception, single wrapping,
 denial, the protection toggle on an already-registered tool. Eleven assertions,
 all green in Chrome 151.
 
-> **Verified against a stand-in, not native Chrome.** The Chrome build available
-> here does not expose `document.modelContext`, so the spike and the demo's
-> polyfill mode exercise the *technique* in a real browser engine rather than
-> Chrome's native implementation. Confirming against flagged Chrome or ChatGPT's
-> in-app browser is the one check still outstanding.
+### Verified against native Chrome
+
+The full 38-assertion end-to-end suite passes against **Chrome's own WebMCP
+implementation** — no polyfill — in Chrome 151.0.7922.174 launched with
+`--enable-blink-features=WebMCPTesting`, served over localhost so the secure-context
+requirement is met. The prototype takeover intercepts registrations made directly
+against the native `ModelContext`, which is the claim this project rests on.
+
+The same suite also passes in polyfill mode, so both paths are covered.
+
+One incompatibility surfaced only under native, and is worth recording because a
+laxer polyfill is how it stayed hidden: **`executeTool(tool, args)` takes its
+arguments as a JSON string**, not an object, and rejects an object with
+*"Failed to parse input arguments"*. The demo's polyfill now matches that
+contract rather than being more permissive than the API it stands in for.
 
 ## Design notes
 

@@ -79,7 +79,8 @@ export function Simulator({
           const native = (await mc.getTools()) as { name: string }[];
           const target = native.find((t) => t.name === name);
           if (!target) throw new Error(`"${name}" is not in getTools()`);
-          result = await mc.executeTool(target, input);
+          // Native executeTool takes the arguments as a JSON string, not an object.
+          result = await mc.executeTool(target, JSON.stringify(input));
         } else {
           result = await g.callTool(name, input);
         }
