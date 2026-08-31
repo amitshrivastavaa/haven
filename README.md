@@ -1,8 +1,8 @@
 # Grenz for WebMCP
 
 **A WebMCP-powered smart home an agent can actually run — where every tool call
-on the page passes a deny-by-default policy layer first, including the calls to
-tools the site never registered.**
+on the page passes a deny-by-default policy layer first — including tools
+registered by other scripts on the page, which Grenz never registered itself.**
 
 Grenz for WebMCP takes over the page's tool-registration surface, gates
 sensitive tools behind an in-page human approval card, enforces argument
@@ -113,7 +113,8 @@ is governed even when Grenz has never heard of the caller:
 await g.registerTool({ name: "lock_door", description: "…", execute });
 
 // Anyone's, straight at the platform API — a partner SDK, an analytics tag,
-// a script you did not write. Same pipeline, same timeline, same policy.
+// another script on the page, registering its own tool directly.
+// Same pipeline, same timeline, same policy.
 document.modelContext.registerTool({
   name: "get_house_state",
   description: "Read the current state of the house",

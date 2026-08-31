@@ -321,7 +321,8 @@ export function App() {
           <GrenzTimeline g={g} className="rail-timeline" />
           <div className="rail-foot">
             <strong>Every</strong> registration and call on this page passes through the policy —
-            including the two tools Grenz did not register itself.
+            including the two registered by third-party scripts, which Grenz
+            never registered itself.
           </div>
         </div>
       </div>
