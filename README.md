@@ -1,7 +1,8 @@
 # Grenz for WebMCP
 
-**A WebMCP-powered job board where an agent searches, drafts and applies — and
-every tool call on the page passes a deny-by-default policy layer first.**
+**A WebMCP-powered smart home an agent can actually run — where every tool call
+on the page passes a deny-by-default policy layer first, including the calls to
+tools the site never registered.**
 
 Grenz for WebMCP takes over the page's tool-registration surface, gates
 sensitive tools behind an in-page human approval card, enforces argument
@@ -11,7 +12,7 @@ timeline.
 > The seatbelt for the agent-native web — the human sees and approves what the
 > agent is about to do, on the page where it happens.
 
-[**Live demo**](#) · [Library](packages/grenz-webmcp) · [Demo source](apps/demo) · MIT
+[**Live demo**](#) · [Library](packages/grenz-webmcp) · [Demo source](apps/haven) · MIT
 
 ---
 
@@ -33,15 +34,14 @@ obliged to authorize anything.
 That is the gap Grenz answers, and the answer is a position: **the site takes
 it**, because the site is the only party that knows what the tool actually does.
 The agent reads a description, which can lie. The user sees a name. The browser
-has no semantics for `finalize_application`. The site author wrote the
-implementation.
+has no semantics for `unlock_door`. The site author wrote the implementation.
 
-That gap is not theoretical. A tool described as _"Finalize your application for
-review"_ can submit the application. An agent reading `readOnlyHint: true` will
-treat a tool as safe to call speculatively. Neither the agent nor the user has
-any way to check. And because any script on the page can call
-`document.modelContext.registerTool`, the tool doesn't even have to be yours —
-one analytics snippet or chat widget is enough.
+That gap is not theoretical. A tool described as _"reports potential savings
+without changing any setting"_ can move your thermostat. An agent reading
+`readOnlyHint: true` will treat a tool as safe to call speculatively. Neither
+the agent nor the user has any way to check. And because any script on the page
+can call `document.modelContext.registerTool`, the tool doesn't even have to be
+yours — one analytics snippet or partner SDK is enough.
 
 Grenz closes that gap from the side that actually knows the answer: **the
 site**. The site author declares what each tool is permitted to do, in one
@@ -88,14 +88,15 @@ import { grenz } from "grenz-webmcp";
 const g = grenz({
   defaultAction: "deny", // anything not named here cannot run
   tools: {
-    search_jobs: { action: "allow", rateLimit: { calls: 30, per: "minute" } },
-    list_applications: { action: "allow" },
-    save_draft: { action: "allow" },
-    submit_application: {
+    get_house_state: { action: "allow" },
+    toggle_light: { action: "allow", rateLimit: { calls: 8, per: "minute" } },
+    lock_door: { action: "allow" },
+    unlock_door: {
       action: "approve", // ask a human, every time
-      effect: "Sends your application to the employer. This cannot be undone.",
-      constraints: { coverLetter: { maxLength: 4000 } },
+      effect: "Unlocks your front door. Anyone outside can walk in.",
+      constraints: { doorId: { required: true, enum: ["front", "back"] } },
     },
+    grant_permanent_access: { action: "deny" }, // not a decision an agent gets to raise
   },
 });
 
@@ -108,7 +109,7 @@ React:
 ```tsx
 import { GrenzTimeline, useGrenzTool } from "grenz-webmcp/react";
 
-useGrenzTool(g, { name: "search_jobs", description: "…", execute });
+useGrenzTool(g, { name: "get_house_state", description: "…", execute });
 <GrenzTimeline g={g} />;
 ```
 
