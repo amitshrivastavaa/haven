@@ -3,15 +3,8 @@ import { GrenzTimeline, useGrenzTool } from "grenz-webmcp/react";
 import { g } from "./grenz-instance";
 import { doorbellEvents, initialHouse, SCENES } from "./house";
 import { Simulator } from "./Simulator";
-import {
-  Banner,
-  DoorbellFeed,
-  Header,
-  LightsCard,
-  LockCard,
-  SceneRow,
-  ThermostatCard,
-} from "./components";
+import { Banner, DoorbellFeed, Header, SceneRow } from "./components";
+import { FloorPlan, spotFor, type Spot } from "./FloorPlan";
 import { loadEcoSaver, loadHomeInsights, unloadEcoSaver, unloadHomeInsights } from "./widgets";
 import type { House, LightId, SceneId } from "./types";
 
@@ -26,6 +19,7 @@ export function App() {
   const [widgets, setWidgets] = useState(false);
   const [breach, setBreach] = useState<string | null>(null);
   const [simOpen, setSimOpen] = useState(() => new URLSearchParams(location.search).has("sim"));
+  const [agent, setAgent] = useState<{ at: Spot; blocked: boolean } | null>(null);
 
   const webmcp = useMemo(hasWebMCP, []);
   const polyfilled = useMemo(() => Boolean((window as any).__grenzPolyfilled), []);
@@ -35,6 +29,30 @@ export function App() {
   }, [webmcp]);
 
   const patch = useCallback((p: Partial<House>) => setHouse((h) => ({ ...h, ...p })), []);
+
+  // The agent's position on the plan comes from the timeline, so it appears
+  // where a call actually landed. Nothing here is scripted: with a real agent
+  // driving, this is the only way to see where it went and what stopped it.
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let seen = 0;
+    const off = g.subscribe((events) => {
+      if (events.length <= seen) {
+        seen = events.length; // includes the replay subscribe() does on attach
+        return;
+      }
+      seen = events.length;
+      const last = events[events.length - 1];
+      if (!last || last.kind === "register") return;
+      setAgent({ at: spotFor(last.tool, last.input), blocked: last.decision === "deny" });
+      clearTimeout(timer);
+      timer = setTimeout(() => setAgent(null), 2600);
+    });
+    return () => {
+      off();
+      clearTimeout(timer);
+    };
+  }, []);
 
   // --- the tools the agent sees -------------------------------------------
   //
@@ -291,28 +309,23 @@ export function App() {
                   }));
               }}
             />
-            <div className="grid">
-              <LockCard
-                locked={house.doorLocked}
-                armed={house.alarmArmed}
-                access={house.access}
-                onLock={() => patch({ doorLocked: true })}
-              />
-              <ThermostatCard
-                targetC={house.targetC}
-                currentC={house.temperatureC}
-                onTarget={(targetC) => patch({ targetC })}
-              />
-            </div>
-            <LightsCard
-              lights={house.lights}
-              onToggle={(id) =>
+            <FloorPlan
+              house={house}
+              agent={agent}
+              onLight={(id) =>
                 setHouse((h) => ({
                   ...h,
                   lights: h.lights.map((l) => (l.id === id ? { ...l, on: !l.on } : l)),
                 }))
               }
+              // Locking is always safe. Unlocking has to come through the
+              // policy, so there is deliberately no way to do it from here.
+              onLock={() => patch({ doorLocked: true })}
             />
+
+            <div className="access-line">
+              {house.access.length} with access: {house.access.join(", ")}
+            </div>
             <DoorbellFeed events={doorbellEvents} />
           </div>
         </div>
