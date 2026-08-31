@@ -104,6 +104,24 @@ await g.registerTool({ name, description, inputSchema, execute, annotations });
 g.mountTimeline(document.querySelector("#audit"));
 ```
 
+Both spellings work, and both land in the same policy — which is the whole
+point. Grenz owns `registerTool` at the prototype, so the plain platform call
+is governed even when Grenz has never heard of the caller:
+
+```ts
+// Yours, through Grenz.
+await g.registerTool({ name: "lock_door", description: "…", execute });
+
+// Anyone's, straight at the platform API — a partner SDK, an analytics tag,
+// a script you did not write. Same pipeline, same timeline, same policy.
+document.modelContext.registerTool({
+  name: "get_house_state",
+  description: "Read the current state of the house",
+  inputSchema: { /* … */ },
+  execute: async (input) => { /* … */ },
+});
+```
+
 React:
 
 ```tsx
