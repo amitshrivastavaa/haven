@@ -22,7 +22,7 @@ declare global {
 
 const g = grenz({
   defaultAction: "deny",
-  tools: { search_jobs: { action: "allow" } },
+  tools: { get_house_state: { action: "allow" } },
 });
 
 const mc = (document as any).modelContext;
@@ -34,30 +34,30 @@ async function main() {
   t("install patched a native registration surface", g.isTakeoverInstalled());
 
   await g.registerTool({
-    name: "search_jobs",
+    name: "get_house_state",
     description: "search",
     annotations: { readOnlyHint: true },
-    execute: async () => ({ jobs: ["a", "b"] }),
+    execute: async () => ({ lights: ["porch", "kitchen"] }),
   });
 
   // --- a third-party script, registering directly, knowing nothing of Grenz ---
-  const original = async ({ jobId }: { jobId: string }) => {
-    thirdPartyRan.push(jobId);
+  const original = async ({ doorId }: { doorId: string }) => {
+    thirdPartyRan.push(doorId);
     return { finalized: true };
   };
   await mc.registerTool({
-    name: "finalize_application",
-    title: "Finalize application",
-    description: "Finalize your application for review",
+    name: "finalize_access",
+    title: "Finalize access",
+    description: "Finalize visitor access for review",
     annotations: { readOnlyHint: true },
     execute: original,
   });
 
-  const stored = mc.tools.get("finalize_application");
+  const stored = mc.tools.get("finalize_access");
   t("the platform holds a WRAPPED tool, not the third party's own", stored.execute !== original);
 
   // The agent calls it through the platform, the way an agent actually would.
-  const denied = await mc.executeTool(stored, { jobId: "job-1" });
+  const denied = await mc.executeTool(stored, { doorId: "door-1" });
   const parsed = JSON.parse(denied);
   t("the call is denied", parsed?.grenz?.decision === "deny", denied);
   t("with reason no_matching_allow", parsed?.grenz?.reason === "no_matching_allow", denied);
@@ -65,23 +65,23 @@ async function main() {
 
   t(
     "wrapped exactly once (no double layer across the two bundles)",
-    g.getTimeline().filter((e) => e.kind === "register" && e.tool === "finalize_application")
+    g.getTimeline().filter((e) => e.kind === "register" && e.tool === "finalize_access")
       .length === 1,
   );
 
   // --- the protection toggle, on the ALREADY-registered tool ---
   g.setEnabled(false);
-  const ran = JSON.parse(await mc.executeTool(stored, { jobId: "job-2" }));
+  const ran = JSON.parse(await mc.executeTool(stored, { doorId: "door-2" }));
   t("protection OFF: the same registered tool now runs", ran?.finalized === true);
-  t("and it really submitted", thirdPartyRan.join() === "job-2");
+  t("and it really submitted", thirdPartyRan.join() === "door-2");
 
   g.setEnabled(true);
-  const denied2 = JSON.parse(await mc.executeTool(stored, { jobId: "job-3" }));
+  const denied2 = JSON.parse(await mc.executeTool(stored, { doorId: "door-3" }));
   t("protection ON again: denied again, no re-registration", denied2?.grenz?.decision === "deny");
-  t("nothing more submitted", thirdPartyRan.join() === "job-2");
+  t("nothing more submitted", thirdPartyRan.join() === "door-2");
 
-  const allowed = JSON.parse(await mc.executeTool(mc.tools.get("search_jobs"), {}));
-  t("a policied tool still works normally", Array.isArray(allowed?.jobs));
+  const allowed = JSON.parse(await mc.executeTool(mc.tools.get("get_house_state"), {}));
+  t("a policied tool still works normally", Array.isArray(allowed?.lights));
 
   window.__spikeDone();
 }

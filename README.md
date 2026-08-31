@@ -228,7 +228,7 @@ Now a site can expose the actions that are actually worth automating (submit,
 purchase, send, cancel) because each one carries a declared consequence and a
 human gate that the site controls. The agent gets a **larger** tool surface, not
 a smaller one, because the risky parts are survivable. And the user can hand over
-a whole task — *find frontend roles, draft a cover letter for the best one, apply*
+a whole task — *see who came to the door, set the house for the evening, let the cleaner in*
 — knowing the irreversible step will come back to them with the arguments on
 screen.
 

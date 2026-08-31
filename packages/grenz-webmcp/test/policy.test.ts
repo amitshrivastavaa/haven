@@ -5,13 +5,13 @@ import type { GrenzConfig } from "../src/types.ts";
 const config: GrenzConfig = {
   defaultAction: "deny",
   tools: {
-    search_jobs: { action: "allow", rateLimit: { calls: 3, per: "minute" } },
-    save_draft: { action: "allow" },
-    export_all: { action: "allow", effect: "Downloads every application you have made." },
-    submit_application: {
+    get_house_state: { action: "allow", rateLimit: { calls: 3, per: "minute" } },
+    toggle_light: { action: "allow" },
+    export_history: { action: "allow", effect: "Downloads every camera clip and door event." },
+    unlock_door: {
       action: "approve",
-      effect: "Sends your application to the employer. This cannot be undone.",
-      constraints: { coverLetter: { maxLength: 20 }, jobId: { required: true, pattern: "job-\\d+" } },
+      effect: "Unlocks your front door. Anyone outside can walk in.",
+      constraints: { note: { maxLength: 20 }, doorId: { required: true, pattern: "door-\\d+" } },
     },
     never: { action: "deny" },
   },
@@ -19,13 +19,13 @@ const config: GrenzConfig = {
 
 describe("step 1 — policy lookup", () => {
   test("denies an unpolicied tool by default", () => {
-    const r = evaluate(config, "finalize_application");
+    const r = evaluate(config, "finalize_access");
     expect(r.decision).toBe("deny");
     expect(r.reason).toBe("no_matching_allow");
   });
 
   test("allows an unpolicied tool when defaultAction is allow", () => {
-    const r = evaluate({ ...config, defaultAction: "allow" }, "finalize_application");
+    const r = evaluate({ ...config, defaultAction: "allow" }, "finalize_access");
     expect(r.decision).toBe("allow");
   });
 
@@ -34,57 +34,57 @@ describe("step 1 — policy lookup", () => {
   });
 
   test("allow and approve resolve as written", () => {
-    expect(evaluate(config, "search_jobs").decision).toBe("allow");
-    expect(evaluate(config, "submit_application").decision).toBe("require_approval");
+    expect(evaluate(config, "get_house_state").decision).toBe("allow");
+    expect(evaluate(config, "unlock_door").decision).toBe("require_approval");
   });
 });
 
 describe("step 2 — annotation mismatch", () => {
   test("catches a write-classified tool claiming readOnlyHint", () => {
-    const r = evaluate(config, "submit_application", { readOnlyHint: true });
+    const r = evaluate(config, "unlock_door", { readOnlyHint: true });
     expect(r.decision).toBe("deny");
     expect(r.reason).toBe("annotation_mismatch");
   });
 
   test("an effect string alone is enough to classify a tool as a write", () => {
     expect(isWriteClassified({ action: "allow", effect: "x" })).toBe(true);
-    const r = evaluate(config, "export_all", { readOnlyHint: true });
+    const r = evaluate(config, "export_history", { readOnlyHint: true });
     expect(r.reason).toBe("annotation_mismatch");
   });
 
   test("a genuine read-only tool is untouched", () => {
-    expect(evaluate(config, "search_jobs", { readOnlyHint: true }).decision).toBe("allow");
+    expect(evaluate(config, "get_house_state", { readOnlyHint: true }).decision).toBe("allow");
   });
 
   test("an unpolicied tool can never mismatch — it has no policy to contradict", () => {
     // This is the demo's attack scene. The claim is false, but the reason is
     // still `no_matching_allow`; overclaiming here would be a lie on camera.
-    const r = evaluate(config, "finalize_application", { readOnlyHint: true });
+    const r = evaluate(config, "finalize_access", { readOnlyHint: true });
     expect(r.reason).toBe("no_matching_allow");
   });
 });
 
 describe("step 3 — argument constraints", () => {
-  const c = config.tools!.submit_application!.constraints;
+  const c = config.tools!.unlock_door!.constraints;
 
   test("passes clean input", () => {
-    expect(checkConstraints(c, { jobId: "job-42", coverLetter: "short" })).toBeNull();
+    expect(checkConstraints(c, { doorId: "door-42", note: "short" })).toBeNull();
   });
 
   test("catches maxLength with the specific numbers", () => {
-    const r = checkConstraints(c, { jobId: "job-42", coverLetter: "x".repeat(21) });
+    const r = checkConstraints(c, { doorId: "door-42", note: "x".repeat(21) });
     expect(r?.reason).toBe("constraint");
     expect(r?.message).toContain("21");
     expect(r?.message).toContain("20");
   });
 
   test("catches a missing required argument", () => {
-    expect(checkConstraints(c, { coverLetter: "ok" })?.message).toContain("required");
+    expect(checkConstraints(c, { note: "ok" })?.message).toContain("required");
   });
 
   test("patterns are anchored, so a substring match is still a violation", () => {
-    expect(checkConstraints(c, { jobId: "not-a-job-42-really" })?.reason).toBe("constraint");
-    expect(checkConstraints(c, { jobId: "job-42" })).toBeNull();
+    expect(checkConstraints(c, { doorId: "not-a-door-42-really" })?.reason).toBe("constraint");
+    expect(checkConstraints(c, { doorId: "door-42" })).toBeNull();
   });
 
   test("enum and numeric range", () => {
@@ -95,7 +95,7 @@ describe("step 3 — argument constraints", () => {
   });
 
   test("non-object input does not throw", () => {
-    expect(checkConstraints(c, undefined)?.reason).toBe("constraint"); // jobId required
+    expect(checkConstraints(c, undefined)?.reason).toBe("constraint"); // doorId required
     expect(checkConstraints(undefined, { anything: true })).toBeNull();
   });
 });
@@ -106,10 +106,10 @@ describe("step 4 — sliding-window rate limit", () => {
   test("allows up to the budget, then denies", () => {
     let now = 1_000_000;
     const rl = new RateLimiter(() => now);
-    expect(rl.check("search_jobs", limit)).toBeNull();
-    expect(rl.check("search_jobs", limit)).toBeNull();
-    expect(rl.check("search_jobs", limit)).toBeNull();
-    expect(rl.check("search_jobs", limit)?.reason).toBe("rate_limit");
+    expect(rl.check("get_house_state", limit)).toBeNull();
+    expect(rl.check("get_house_state", limit)).toBeNull();
+    expect(rl.check("get_house_state", limit)).toBeNull();
+    expect(rl.check("get_house_state", limit)?.reason).toBe("rate_limit");
   });
 
   test("the window slides — budget returns as calls age out", () => {

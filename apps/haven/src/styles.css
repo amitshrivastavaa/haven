@@ -1,5 +1,5 @@
-/* JamBoard Jobs — demo app styles.
-   Two visual systems on purpose: the job board is neutral and calm, and
+/* Haven — demo app styles.
+   Two visual systems on purpose: the house is neutral and calm, and
    anything belonging to Grenz is violet. A viewer should be able to tell at a
    glance which pixels are the product and which are the safety layer. */
 
@@ -233,8 +233,6 @@ button, input, textarea { font-family: inherit; font-size: inherit; color: inher
 }
 .sim-mode button.on { background: var(--accent-soft); border-color: var(--accent-line); color: var(--accent); }
 .sim-mode button:disabled { opacity: .4; cursor: not-allowed; }
-
-/* --- jobs / applications tabs ------------------------------------------- */
 
 /* --- the house ----------------------------------------------------------- */
 
