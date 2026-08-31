@@ -11,19 +11,6 @@
         "typescript": "^7.0.2",
       },
     },
-    "apps/demo": {
-      "name": "@grenz/demo",
-      "version": "0.1.0",
-      "dependencies": {
-        "grenz-webmcp": "workspace:*",
-        "react": "^19.0.0",
-        "react-dom": "^19.0.0",
-      },
-      "devDependencies": {
-        "@vitejs/plugin-react": "^4.3.4",
-        "vite": "^6.0.7",
-      },
-    },
     "apps/haven": {
       "name": "@grenz/haven",
       "version": "0.1.0",
@@ -132,8 +119,6 @@
     "@esbuild/win32-ia32": ["@esbuild/win32-ia32@0.25.12", "", { "os": "win32", "cpu": "ia32" }, "sha512-HkqnmmBoCbCwxUKKNPBixiWDGCpQGVsrQfJoVGYLPT41XWF8lHuE5N6WhVia2n4o5QK5M4tYr21827fNhi4byQ=="],
 
     "@esbuild/win32-x64": ["@esbuild/win32-x64@0.25.12", "", { "os": "win32", "cpu": "x64" }, "sha512-alJC0uCZpTFrSL0CCDjcgleBXPnCrEAhTBILpeAp7M/OFgoqtAetfBzX0xM00MUsVVPpVjlPuMbREqnZCXaTnA=="],
-
-    "@grenz/demo": ["@grenz/demo@workspace:apps/demo"],
 
     "@grenz/haven": ["@grenz/haven@workspace:apps/haven"],
 

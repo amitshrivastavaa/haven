@@ -10,9 +10,7 @@
     "dev": "bun --filter @grenz/haven dev",
     "build": "bun --filter grenz-webmcp build && bun --filter @grenz/haven build",
     "test": "bun test",
-    "typecheck": "tsc --noEmit -p packages/grenz-webmcp && tsc --noEmit -p apps/haven && tsc --noEmit -p apps/demo",
-    "dev:demo": "bun --filter @grenz/demo dev",
-    "build:demo": "bun --filter grenz-webmcp build && bun --filter @grenz/demo build"
+    "typecheck": "tsc --noEmit -p packages/grenz-webmcp && tsc --noEmit -p apps/haven"
   },
   "devDependencies": {
     "@types/bun": "^1.4.0",
