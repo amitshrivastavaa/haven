@@ -5,3 +5,9 @@ dist
 packages/grenz-webmcp/spike/spike.js
 packages/grenz-webmcp/spike/grenz-install.js
 apps/demo/public/grenz-install.js
+
+# Working documents — build brief, shooting script, Devpost draft.
+# Kept on disk, deliberately not published.
+prompt-03.md
+VIDEO_SCRIPT.md
+SUBMISSION.md
