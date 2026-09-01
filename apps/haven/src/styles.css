@@ -275,9 +275,12 @@ body.tech .ev .tk { display: block; }
    bbox is far larger than the room — an outline on it drew two tall verticals
    with its top and bottom edges outside the plan entirely. Stroke the geometry
    instead: the floor rect, the chip, the leaf. */
-.fp-room:focus-visible, .fp-step:focus-visible, .fp-tap:focus-visible, .fp-door:focus-visible {
-  outline: none;
-}
+/* :focus, not just :focus-visible. A mouse click focuses these groups without
+   matching :focus-visible, so the UA stylesheet was drawing its own ring —
+   rgb(0,95,204), Chrome's default — around a box that includes the light-pool
+   blur region. Suppress the outline in every focus state; the geometry stroke
+   below is what a keyboard user actually sees. */
+.fp-room:focus, .fp-step:focus, .fp-tap:focus, .fp-door:focus { outline: none; }
 .fp-room:focus-visible .fp-floor { stroke: #6E9BFF; stroke-width: 3; }
 .fp-step:focus-visible circle { stroke: #6E9BFF; stroke-width: 2.5; }
 .fp-tap:focus-visible .fp-chip { stroke: #6E9BFF; stroke-width: 2.5; }
