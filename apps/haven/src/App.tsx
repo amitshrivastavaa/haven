@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { GrenzTimeline, useGrenzTool } from "grenz-webmcp/react";
+import { useGrenzTool } from "grenz-webmcp/react";
 import { g } from "./grenz-instance";
 import { doorbellEvents, initialHouse, SCENES } from "./house";
 import { Simulator } from "./Simulator";
-import { Banner, DemoBar, DoorbellFeed, Header, LastAction, SceneRow, type Tab } from "./components";
-import { Rules } from "./Rules";
+import { Banner, DoorbellFeed, Head, RulesCard } from "./components";
+import { ActivityCard } from "./Feed";
 import { FloorPlan, spotFor, type Spot } from "./FloorPlan";
 import { loadEcoSaver, loadHomeInsights, unloadEcoSaver, unloadHomeInsights } from "./widgets";
 import type { House, LightId, SceneId } from "./types";
@@ -21,9 +21,7 @@ export function App() {
   const [breach, setBreach] = useState<string | null>(null);
   const [simOpen, setSimOpen] = useState(() => new URLSearchParams(location.search).has("sim"));
   const [agent, setAgent] = useState<{ at: Spot; blocked: boolean } | null>(null);
-  const [tab, setTab] = useState<Tab>("home");
-  const [last, setLast] = useState<{ tool: string; decision: string; message: string } | null>(null);
-  const [unread, setUnread] = useState(0);
+  const [busy, setBusy] = useState(false);
 
   const webmcp = useMemo(hasWebMCP, []);
   const polyfilled = useMemo(() => Boolean((window as any).__grenzPolyfilled), []);
@@ -49,8 +47,6 @@ export function App() {
       const last = events[events.length - 1];
       if (!last || last.kind === "register") return;
       setAgent({ at: spotFor(last.tool, last.input), blocked: last.decision === "deny" });
-      setLast({ tool: last.tool, decision: last.decision, message: last.message });
-      setUnread((n) => n + 1);
       clearTimeout(timer);
       timer = setTimeout(() => setAgent(null), 2600);
     });
@@ -261,41 +257,124 @@ export function App() {
     }
   }, []);
 
+
+  /**
+   * The scenarios. Every one of these is a real sequence of real tool calls
+   * through the real pipeline — nothing here is scripted playback, which is why
+   * a scenario can be interrupted by an approval card and why it can fail.
+   */
+  const play = useCallback(
+    (steps: [string, unknown][], gap = 900) =>
+      async () => {
+        setBusy(true);
+        try {
+          for (const [tool, input] of steps) {
+            await g.callTool(tool, input);
+            await new Promise((r) => setTimeout(r, gap));
+          }
+        } finally {
+          setBusy(false);
+        }
+      },
+    [],
+  );
+
+  // A dog walker turns up. Reading the door log is fine; letting him in is not
+  // something an assistant decides on its own.
+  const sam = play([
+    ["get_doorbell_events", {}],
+    ["toggle_light", { lightId: "porch", on: true }],
+    ["unlock_door", { doorId: "front" }],
+  ]);
+
+  // The attack, replayed. Every step is a reasonable thing for an assistant to
+  // do given what it just read — which is the whole point.
+  const attack = play([
+    ["get_doorbell_events", {}],
+    ["unlock_door", { doorId: "front" }],
+    ["disarm_alarm", {}],
+    ["grant_permanent_access", { who: "Halden HVAC" }],
+  ]);
+
+  const evening = play([
+    ["get_house_state", {}],
+    ["set_thermostat", { targetC: 45 }],
+    ["set_thermostat", { targetC: 21 }],
+    ["set_scene", { scene: "movie" }],
+  ]);
+
+  const reset = useCallback(() => {
+    setHouse(initialHouse);
+    setBreach(null);
+    g.clearTimeline();
+  }, []);
+
+  const [cmd, setCmd] = useState("");
+
+  /**
+   * A stand-in for the assistant, for anyone without one attached. It maps a
+   * sentence onto a real tool and calls it through the same pipeline, so what
+   * you see is the policy answering, not a script.
+   */
+  const send = useCallback(
+    async (text: string) => {
+      const s = text.toLowerCase();
+      const light = (["porch", "living", "kitchen", "bedroom"] as LightId[]).find((l) => s.includes(l));
+      const deg = s.match(/(-?\d+)\s*°?/)?.[1];
+      const call =
+        s.includes("unlock") ? (["unlock_door", { doorId: "front" }] as const)
+        : s.includes("lock") ? (["lock_door", {}] as const)
+        : s.includes("alarm") ? (["disarm_alarm", {}] as const)
+        : s.includes("door") || s.includes("who") ? (["get_doorbell_events", {}] as const)
+        : s.includes("access") ? (["grant_permanent_access", { who: "a contractor" }] as const)
+        : light ? (["toggle_light", { lightId: light, on: !s.includes("off") }] as const)
+        : deg ? (["set_thermostat", { targetC: Number(deg) }] as const)
+        : (["get_house_state", {}] as const);
+      setCmd("");
+      await g.callTool(call[0], call[1]);
+    },
+    [],
+  );
+
+  const litCount = house.lights.filter((l) => l.on).length;
+  const summary = `${house.doorLocked ? "Everything's locked up" : "Front door unlocked"} · ${
+    litCount === 0 ? "no rooms lit" : `${litCount} ${litCount === 1 ? "room" : "rooms"} lit`
+  }`;
+
+  const applyScene = useCallback((s: SceneId) => {
+    const preset = SCENES[s];
+    if (!preset) return;
+    setHouse((h) => ({
+      ...h,
+      scene: s,
+      targetC: preset.targetC,
+      lights: h.lights.map((l) => ({ ...l, on: preset.lights.includes(l.id) })),
+    }));
+  }, []);
+
   return (
-    <div className="app">
-      <Header
+    <div className="wrap">
+      <Head
         webmcp={webmcp}
         polyfilled={polyfilled}
         protection={protection}
-        tab={tab}
-        onTab={(next) => {
-          setTab(next);
-          if (next === "activity") setUnread(0);
-        }}
-        unread={unread}
-      />
-
-      <DemoBar
-        protection={protection}
         onProtection={toggleProtection}
-        widgets={widgets}
-        onWidgets={toggleWidgets}
-        simOpen={simOpen}
-        onSim={() => setSimOpen((v) => !v)}
-        onRunaway={runaway}
+        summary={summary}
+        scene={house.scene}
+        onScene={applyScene}
       />
 
       {!protection && (
         <Banner kind="danger">
-          Your home is unprotected. Every tool on this page — including the two a partner app
-          added — now runs the moment the assistant asks. No house rules, nothing to approve.
+          Your home is unprotected. Every tool on this page — including the two a partner app added —
+          now runs the moment the assistant asks. No house rules, nothing to approve.
         </Banner>
       )}
 
       {breach && (
         <Banner kind="danger">
           {breach}
-          <button className="ghost-btn banner-cta" onClick={() => toggleProtection(true)}>
+          <button className="banner-cta" onClick={() => toggleProtection(true)}>
             Turn protection back on
           </button>
         </Banner>
@@ -304,85 +383,87 @@ export function App() {
       {!webmcp && (
         <Banner kind="info">
           No assistant can reach this page in this browser. Open it in ChatGPT's browser, or enable{" "}
-          <code>chrome://flags/#enable-webmcp-testing</code> in Chrome. Until then, "Send a request by
-          hand" goes through exactly the same house rules.
+          <code>chrome://flags/#enable-webmcp-testing</code> in Chrome. Until then, the box below
+          goes through exactly the same house rules.
         </Banner>
       )}
 
-      <div className="main">
-        {tab === "home" && (
-        <div className="col house">
-          <div className="col-scroll">
-            <LastAction
-              event={last}
-              onOpen={() => {
-                setTab("activity");
-                setUnread(0);
-              }}
-            />
-            <SceneRow
-              scene={house.scene}
-              onScene={(s) => {
-                const preset = SCENES[s];
-                if (preset)
-                  setHouse((h) => ({
-                    ...h,
-                    scene: s,
-                    targetC: preset.targetC,
-                    lights: h.lights.map((l) => ({ ...l, on: preset.lights.includes(l.id) })),
-                  }));
-              }}
-            />
-            <FloorPlan
-              house={house}
-              agent={agent}
-              onLight={(id) =>
-                setHouse((h) => ({
-                  ...h,
-                  lights: h.lights.map((l) => (l.id === id ? { ...l, on: !l.on } : l)),
-                }))
-              }
-              // Locking is always safe. Unlocking has to come through the
-              // policy, so there is deliberately no way to do it from here.
-              onLock={() => patch({ doorLocked: true })}
-              // Clamped to the same 10-30 the policy imposes on the assistant:
-              // a control that lets a person do what a rule forbids the agent
-              // would make the rule look arbitrary rather than physical.
-              onTarget={(next) => patch({ targetC: Math.min(30, Math.max(10, next)) })}
-              // Arming is safe. Disarming by hand is the resident standing in
-              // their own hallway, which is a different act from an agent
-              // doing it on a stranger's say-so.
-              onAlarm={() => patch({ alarmArmed: !house.alarmArmed })}
-            />
+      <main>
+        <div className="stage">
+          <FloorPlan
+            house={house}
+            agent={agent}
+            onLight={(id) =>
+              setHouse((h) => ({
+                ...h,
+                lights: h.lights.map((l) => (l.id === id ? { ...l, on: !l.on } : l)),
+              }))
+            }
+            // Locking is always safe. Unlocking has to come through the policy,
+            // so there is deliberately no way to do it from here.
+            onLock={() => patch({ doorLocked: true })}
+            // Clamped to the same 10–30 the policy imposes on the assistant: a
+            // control that let a person exceed the rule would make the rule look
+            // arbitrary rather than physical.
+            onTarget={(next) => patch({ targetC: Math.min(30, Math.max(10, next)) })}
+            onAlarm={() => patch({ alarmArmed: !house.alarmArmed })}
+          />
 
-            <div className="access-line">
-              {house.access.length} with access: {house.access.join(", ")}
-            </div>
-            <DoorbellFeed events={doorbellEvents} />
+          <form
+            className="bar"
+            autoComplete="off"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (cmd.trim()) void send(cmd);
+            }}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1" />
+            </svg>
+            <input
+              value={cmd}
+              onChange={(e) => setCmd(e.target.value)}
+              placeholder="Ask your assistant to do something…"
+              aria-label="Ask your assistant"
+            />
+            <button className="send" type="submit" disabled={!cmd.trim()}>
+              Send
+            </button>
+          </form>
+
+          <div className="run">
+            <button className="btn primary" onClick={sam} disabled={busy}>
+              ▶ Sam the dog walker
+            </button>
+            <button className="btn" onClick={evening} disabled={busy}>
+              ▶ Evening in
+            </button>
+            <button className="btn" onClick={runaway} disabled={busy}>
+              ▶ Runaway agent
+            </button>
+            <button className="btn" onClick={() => toggleWidgets(!widgets)}>
+              {widgets ? "✓ Third-party scripts" : "▶ Third-party scripts"}
+            </button>
+            <button className="btn danger" onClick={attack} disabled={busy}>
+              ▶ Replay the attack
+            </button>
+            <button className="btn" onClick={reset}>
+              Reset
+            </button>
+            <span className="runhint">or click a room to switch its light</span>
+          </div>
+
+          <div className="access-line">
+            {house.access.length} with access: {house.access.join(", ")}
           </div>
         </div>
-        )}
+      </main>
 
-        {tab === "rules" && (
-          <div className="col house">
-            <div className="col-scroll">
-              <Rules />
-            </div>
-          </div>
-        )}
-
-        {/* Always mounted, hidden when another tab is showing: the timeline is a
-            live subscription, and remounting it on every tab switch would throw
-            away its scroll position and re-run its shadow-root setup. */}
-        <div className={`col rail ${tab === "activity" ? "" : "hidden"}`}>
-          <GrenzTimeline g={g} className="rail-timeline" />
-          <div className="rail-foot">
-            <strong>Everything</strong> the assistant does here passes your house rules first —
-            including the two tools a partner app added, which Haven never
-            added itself.
-          </div>
-        </div>
-      </div>
+      <aside className="side">
+        <ActivityCard />
+        <RulesCard />
+        <DoorbellFeed events={doorbellEvents} />
+      </aside>
 
       {simOpen && <Simulator g={g} webmcp={webmcp} onClose={() => setSimOpen(false)} />}
     </div>

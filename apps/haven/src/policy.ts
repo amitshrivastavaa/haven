@@ -96,21 +96,23 @@ export function setRuleAction(tool: string, action: ToolAction): void {
  */
 export interface RuleCopy {
   tool: string;
-  group: string;
+  /** How the rule reads in the list: a whole sentence, not a label. */
+  said: string;
+  /** How it reads when you are changing it: the action, not the permission. */
   what: string;
   /** The extra the policy imposes regardless of which of the three is chosen. */
   limit?: string;
 }
 
 export const RULE_COPY: RuleCopy[] = [
-  { tool: "lock_door", group: "Front door", what: "Lock it" },
-  { tool: "unlock_door", group: "Front door", what: "Unlock it" },
-  { tool: "grant_permanent_access", group: "Front door", what: "Give someone permanent access" },
-  { tool: "disarm_alarm", group: "Alarm", what: "Turn the alarm off" },
-  { tool: "set_thermostat", group: "Heating", what: "Change the temperature", limit: "never outside 10–30°" },
-  { tool: "eco_optimize", group: "Heating", what: "Let EcoSaver adjust it", limit: "a partner app" },
-  { tool: "toggle_light", group: "Lights", what: "Switch a light", limit: "at most 8 times a minute" },
-  { tool: "set_scene", group: "Lights", what: "Set a scene" },
-  { tool: "get_house_state", group: "Reading things", what: "See how the house is set" },
-  { tool: "get_doorbell_events", group: "Reading things", what: "Read the door intercom", limit: "written by strangers" },
+  { tool: "toggle_light", said: "Turn lights on and off", what: "Switch a light", limit: "at most 8 times a minute" },
+  { tool: "set_thermostat", said: "Set the heating between 10° and 30°", what: "Change the temperature", limit: "never outside 10–30°" },
+  { tool: "get_doorbell_events", said: "Read who came to the door", what: "Read the door intercom", limit: "written by strangers" },
+  { tool: "get_house_state", said: "See how the house is set", what: "See how the house is set" },
+  { tool: "set_scene", said: "Switch the house between Home, Away, Movie and Goodnight", what: "Set a scene" },
+  { tool: "lock_door", said: "Lock the front door", what: "Lock the front door" },
+  { tool: "unlock_door", said: "Ask you before unlocking the front door", what: "Unlock the front door" },
+  { tool: "disarm_alarm", said: "Ask you before turning off the alarm", what: "Turn the alarm off" },
+  { tool: "eco_optimize", said: "Ask you before letting EcoSaver touch the heating", what: "Let EcoSaver adjust the heating", limit: "a partner app" },
+  { tool: "grant_permanent_access", said: "Never give anyone permanent access", what: "Give someone permanent access" },
 ];

@@ -1,205 +1,142 @@
 import type { ReactNode } from "react";
+import { useState } from "react";
+import type { ToolAction } from "grenz-webmcp";
 import { SCENES } from "./house";
+import { RULE_COPY, rules, setRuleAction } from "./policy";
 import type { DoorbellEvent, SceneId } from "./types";
 
-const Shield = ({ size = 15 }: { size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-  </svg>
-);
-
-const ShieldOff = ({ size = 15 }: { size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-    <path d="M3 3l18 18" />
-  </svg>
-);
-
-/**
- * The product header. Everything here is something a person who lives in this
- * house would recognise: is the assistant connected, and is the house
- * protected. The instruments that exist to break the demo live in DemoBar,
- * below, deliberately separated — a resident has no reason to sabotage their
- * own home, and mixing the two made it impossible to tell which was which.
- */
-export type Tab = "home" | "rules" | "activity";
-
-export function Header({
+export function Head({
   webmcp,
   polyfilled,
   protection,
-  tab,
-  onTab,
-  unread,
+  onProtection,
+  summary,
+  scene,
+  onScene,
 }: {
   webmcp: boolean;
   polyfilled: boolean;
   protection: boolean;
-  tab: Tab;
-  onTab: (t: Tab) => void;
-  unread: number;
+  onProtection: (next: boolean) => void;
+  summary: string;
+  scene: SceneId;
+  onScene: (s: SceneId) => void;
 }) {
   return (
-    <header className="header">
-      <div className="brand">
-        <div className="brand-mark">H</div>
-        <div>
-          <div className="brand-name">Haven</div>
-          <div className="brand-sub">your home, with an assistant</div>
-        </div>
+    <div className="head">
+      <div className="logo">H</div>
+      <div>
+        <h1>Haven</h1>
+        <p className="sub">
+          {summary}
+          {" · "}
+          <span title={polyfilled ? "A demo polyfill is standing in for the browser's WebMCP" : "document.modelContext"}>
+            {!webmcp ? "no assistant connected" : polyfilled ? "assistant connected (demo)" : "assistant connected"}
+          </span>
+        </p>
       </div>
 
-      <nav className="tabs" aria-label="Sections">
-        {(
-          [
-            ["home", "Home"],
-            ["rules", "House rules"],
-            ["activity", "Activity"],
-          ] as const
-        ).map(([id, label]) => (
+      <div className="modes" role="group" aria-label="Home mode">
+        {Object.values(SCENES).map((s) => (
           <button
-            key={id}
-            className={`tab ${tab === id ? "on" : ""}`}
-            aria-current={tab === id ? "page" : undefined}
-            onClick={() => onTab(id)}
+            key={s.id}
+            className="mode"
+            aria-pressed={s.id === scene}
+            onClick={() => onScene(s.id as SceneId)}
           >
-            {label}
-            {id === "activity" && unread > 0 && <span className="tab-count">{unread}</span>}
+            {s.name}
           </button>
         ))}
-      </nav>
-
-      <div className="header-tools">
-        <span
-          className={`pill ${webmcp ? "live" : "absent"}`}
-          title={
-            polyfilled
-              ? "A demo polyfill is standing in for the browser's WebMCP — not the real API"
-              : "document.modelContext"
-          }
-        >
-          <span className="dot" />
-          {!webmcp
-            ? "No assistant connected"
-            : polyfilled
-              ? "Assistant connected (demo)"
-              : "Assistant connected"}
-        </span>
-
-        <span className={`pill state-shield ${protection ? "safe" : "unsafe"}`}>
-          {protection ? <Shield size={13} /> : <ShieldOff size={13} />}
-          {protection ? "Protected" : "Not protected"}
-        </span>
       </div>
-    </header>
-  );
-}
-
-/**
- * The exhibit, labelled as one. A judge needs the levers to be obvious; a
- * resident needs to know these are not their house's controls.
- */
-export function DemoBar({
-  protection,
-  onProtection,
-  widgets,
-  onWidgets,
-  simOpen,
-  onSim,
-  onRunaway,
-}: {
-  protection: boolean;
-  onProtection: (next: boolean) => void;
-  widgets: boolean;
-  onWidgets: (next: boolean) => void;
-  simOpen: boolean;
-  onSim: () => void;
-  onRunaway: () => void;
-}) {
-  return (
-    <div className="demobar">
-      <span className="demobar-tag">Try to break it</span>
 
       <button
-        className={`demo-btn ${protection ? "" : "armed"}`}
+        className={`guard ${protection ? "on" : "off"}`}
         onClick={() => onProtection(!protection)}
-        aria-pressed={!protection}
-        title="Removes the policy layer entirely, so every tool runs the moment it is asked"
+        aria-pressed={protection}
       >
-        {protection ? <ShieldOff size={13} /> : <Shield size={13} />}
-        {protection ? "Turn protection off" : "Turn protection back on"}
-      </button>
-
-      <button
-        className={`demo-btn ${widgets ? "on" : ""}`}
-        onClick={() => onWidgets(!widgets)}
-        title="Loads two partner scripts that register their own tools straight at document.modelContext"
-      >
-        {widgets ? "✓ Partner apps connected" : "Connect partner apps"}
-      </button>
-
-      <button
-        className="demo-btn"
-        onClick={onRunaway}
-        title="Fires the same tool twelve times against a house rule that allows eight a minute"
-      >
-        Assistant stuck in a loop
-      </button>
-
-      <button className={`demo-btn ${simOpen ? "on" : ""}`} onClick={onSim}>
-        Send a request by hand
+        Haven protection <span className="sw" />
       </button>
     </div>
-  );
-}
-
-export function LastAction({
-  event,
-  onOpen,
-}: {
-  event: { tool: string; decision: string; message: string } | null;
-  onOpen: () => void;
-}) {
-  if (!event) return null;
-  const word =
-    event.decision === "deny"
-      ? "Refused"
-      : event.decision === "require_approval"
-        ? "You allowed"
-        : event.decision === "unprotected"
-          ? "Ran unprotected"
-          : "Allowed";
-  return (
-    <button className={`lastact ${event.decision}`} onClick={onOpen}>
-      <span className="lastact-word">{word}</span>
-      <code>{event.tool}</code>
-      <span className="lastact-msg">{event.message}</span>
-      <span className="lastact-more">See all →</span>
-    </button>
   );
 }
 
 export function Banner({ kind, children }: { kind: "info" | "danger"; children: ReactNode }) {
   return (
     <div className={`banner ${kind}`} role={kind === "danger" ? "alert" : undefined}>
-      {kind === "danger" ? <ShieldOff size={14} /> : null}
       <span>{children}</span>
     </div>
   );
 }
 
-export function SceneRow({ scene, onScene }: { scene: SceneId; onScene: (s: SceneId) => void }) {
+const CHOICES: { action: ToolAction; label: string; cls: string }[] = [
+  { action: "allow", label: "Freely", cls: "p-allow" },
+  { action: "approve", label: "Ask me", cls: "p-ask" },
+  { action: "deny", label: "Never", cls: "p-never" },
+];
+
+/**
+ * The rules as a list you read, and — one tap away — a list you change.
+ *
+ * Two states of one card rather than two screens: the sentence is the same
+ * either way, and a rule you can see but not change is not really yours.
+ */
+export function RulesCard() {
+  const [editing, setEditing] = useState(false);
+  const [, bump] = useState(0);
+
+  const dot = (a: ToolAction | undefined) => (a === "approve" ? "r-ask" : a === "deny" ? "r-never" : "");
+
   return (
-    <div className="scene-row">
-      {Object.values(SCENES).map((s) => (
-        <button
-          key={s.id}
-          className={`scene ${s.id === scene ? "on" : ""}`}
-          onClick={() => onScene(s.id as SceneId)}
-        >
-          {s.name}
+    <div className="card rules">
+      <div className="card-top">
+        <div>
+          <h2>House rules</h2>
+          <p className="lead">What your assistant may do.</p>
+        </div>
+        <button className="edit" onClick={() => setEditing((v) => !v)}>
+          {editing ? "Done" : "Change these"}
         </button>
-      ))}
+      </div>
+
+      {!editing ? (
+        <ul>
+          {RULE_COPY.map((r) => (
+            <li key={r.tool} className={dot(rules[r.tool]?.action)}>
+              {r.said}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div className="redit">
+          {RULE_COPY.map((r) => {
+            const current = rules[r.tool]?.action;
+            return (
+              <div key={r.tool} className="redit-row">
+                <div className="redit-what">{r.what}</div>
+                <div className="redit-sub">
+                  {r.tool}
+                  {r.limit ? ` · ${r.limit}` : ""}
+                </div>
+                <div className="redit-pick" role="group" aria-label={r.what}>
+                  {CHOICES.map((c) => (
+                    <button
+                      key={c.action}
+                      className={c.cls}
+                      aria-pressed={current === c.action}
+                      onClick={() => {
+                        setRuleAction(r.tool, c.action);
+                        bump((n) => n + 1);
+                      }}
+                    >
+                      {c.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -207,11 +144,9 @@ export function SceneRow({ scene, onScene }: { scene: SceneId; onScene: (s: Scen
 export function DoorbellFeed({ events }: { events: DoorbellEvent[] }) {
   return (
     <div className="card">
-      <div className="card-head">
-        <h2>Front door intercom</h2>
-        <span className="state">today</span>
-      </div>
-      <div className="feed">
+      <h2>Front door intercom</h2>
+      <p className="lead">Today</p>
+      <div style={{ marginTop: 12 }}>
         {events.map((e) => (
           <div key={e.id} className="feed-row">
             <div className="feed-meta">
