@@ -250,7 +250,7 @@ export function FloorPlan({
             className="fp-tap"
             {...pressable(
               onAlarm,
-              house.alarmArmed ? "Turn the alarm off" : "Turn the alarm on",
+              house.alarmArmed ? "Alarm, armed" : "Arm the alarm",
             )}
           >
             <rect className="fp-chip" x={504} y={316} width={104} height={44} rx={11} />

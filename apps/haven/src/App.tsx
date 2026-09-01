@@ -510,7 +510,13 @@ export function App() {
               // a control that let a person exceed the rule would make the rule
               // look arbitrary rather than physical.
               onTarget={(next) => patch({ targetC: Math.min(30, Math.max(10, next)) })}
-              onAlarm={() => patch({ alarmArmed: !house.alarmArmed })}
+              // Arming is always safe; disarming has to come through the
+              // policy. The same rule the front door follows, and it was the
+              // one control that broke it: disarm_alarm asks for a passkey, so
+              // a chip on the plan that turns the alarm off with one click is
+              // a way around that ceremony rather than through it — and a real
+              // click is exactly what an agent driving the mouse has.
+              onAlarm={() => patch({ alarmArmed: true })}
             />
 
             <form
