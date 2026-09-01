@@ -24,7 +24,12 @@ import { toLine, type Line } from "./Feed";
  * 10–30 and watch the house rules refuse it. A form that quietly clamped the
  * value would be hiding the only thing this screen is for.
  *
- * The JSON is still one click away, for arguments no form could anticipate.
+ * Full height, so both readings of a call fit at once: the fields on the left,
+ * and beside them the exact JSON an agent would have put on the wire. They are
+ * two views of one value — edit either and the other follows — which is the
+ * cheapest way to show that the friendly control and the agent's request are
+ * the same request. The JSON stays editable for arguments no form could
+ * anticipate.
  *
  * The answer is phrased the same way, and by the same function the Activity
  * rail uses — a call made here is a real call, so it lands in the real
@@ -163,8 +168,11 @@ export function Simulator({
 }) {
   const [tools, setTools] = useState<RegistryEntry[]>(() => g.listTools());
   const [values, setValues] = useState<Record<string, Record<string, string>>>({});
-  const [json, setJson] = useState<Record<string, string>>({});
-  const [raw, setRaw] = useState(false);
+  /** Hand-typed JSON, kept verbatim while editing so the caret does not jump. */
+  const [draft, setDraft] = useState<Record<string, string>>({});
+  /** Keys the form has no field for. Hand-written arguments survive here. */
+  const [extras, setExtras] = useState<Record<string, Record<string, unknown>>>({});
+  const [badJson, setBadJson] = useState<Record<string, string>>({});
   const [out, setOut] = useState<Record<string, { text: string; denied: boolean; line: Line | null }>>({});
   const [busy, setBusy] = useState<string | null>(null);
   const [mode, setMode] = useState<Mode>("grenz");
@@ -187,38 +195,65 @@ export function Simulator({
     ? (values[selected.name] ?? seedValues(selected, fields))
     : {};
 
-  const input = useMemo(() => toInput(fields, current), [fields, current]);
-  const rawText = selected
-    ? (json[selected.name] ?? JSON.stringify(input, null, 2))
+  const input = useMemo(
+    () => ({ ...toInput(fields, current), ...(selected ? (extras[selected.name] ?? {}) : {}) }),
+    [fields, current, extras, selected],
+  );
+  const shownJson = selected
+    ? (draft[selected.name] ?? JSON.stringify(input, null, 2))
     : "{}";
+  const jsonError = selected ? badJson[selected.name] : undefined;
+
+  const forget = (map: Record<string, unknown>, name: string) => {
+    const { [name]: _drop, ...rest } = map;
+    return rest as Record<string, string>;
+  };
 
   const set = (key: string, value: string) => {
     if (!selected) return;
     setValues((p) => ({ ...p, [selected.name]: { ...current, [key]: value } }));
-    // The JSON view is a projection of the fields until someone edits it, so
-    // changing a field has to drop a stale hand-written override.
-    setJson((p) => {
-      const { [selected.name]: _drop, ...rest } = p;
-      return rest;
-    });
+    // The JSON is a view of the values, so a field edit drops the hand-typed
+    // text and lets it re-render from the truth.
+    setDraft((p) => forget(p, selected.name));
+    setBadJson((p) => forget(p, selected.name));
+  };
+
+  /** Hand-edited JSON flows back into the fields, so there is one truth. */
+  const setJson = (text: string) => {
+    if (!selected) return;
+    const name = selected.name;
+    setDraft((p) => ({ ...p, [name]: text }));
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(text || "{}");
+    } catch (e) {
+      setBadJson((p) => ({ ...p, [name]: (e as Error).message }));
+      return;
+    }
+    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+      setBadJson((p) => ({ ...p, [name]: "Arguments have to be an object." }));
+      return;
+    }
+    setBadJson((p) => forget(p, name));
+    const bag = parsed as Record<string, unknown>;
+    const known = new Set(fields.map((f) => f.key));
+    setValues((p) => ({
+      ...p,
+      [name]: Object.fromEntries(
+        fields.map((f) => [f.key, bag[f.key] === undefined ? "" : String(bag[f.key])]),
+      ),
+    }));
+    setExtras((p) => ({
+      ...p,
+      [name]: Object.fromEntries(Object.entries(bag).filter(([k]) => !known.has(k))),
+    }));
   };
 
   const run = useCallback(async () => {
     if (!selected) return;
     const name = selected.name;
-    let payload: unknown = input;
-
-    if (raw) {
-      try {
-        payload = JSON.parse(rawText || "{}");
-      } catch (e) {
-        setOut((p) => ({
-          ...p,
-          [name]: { text: `That is not valid JSON: ${(e as Error).message}`, denied: true, line: null },
-        }));
-        return;
-      }
-    }
+    if (badJson[name]) return; // the JSON pane already says what is wrong
+    const payload: unknown = input;
 
     setBusy(name);
     try {
@@ -254,7 +289,7 @@ export function Simulator({
     } finally {
       setBusy(null);
     }
-  }, [g, mode, selected, input, raw, rawText]);
+  }, [g, mode, selected, input, badJson]);
 
   return (
     <aside className="sim" aria-label="Tool simulator">
@@ -310,31 +345,13 @@ export function Simulator({
               <h3>{selected.title}</h3>
               <code>{selected.name}</code>
               {selected.foreign && <span className="badge-foreign">third-party</span>}
-              <button
-                className="sim-raw"
-                aria-pressed={raw}
-                onClick={() => setRaw((v) => !v)}
-                title="Send arguments no form could anticipate"
-              >
-                {raw ? "Use the fields" : "Edit as JSON"}
-              </button>
             </div>
             <p className="sim-tool-desc">{selected.description}</p>
 
             <div className="sim-io">
               <div className="sim-args">
                 <span>What to ask for</span>
-                {raw ? (
-                  <textarea
-                    className="sim-json"
-                    value={rawText}
-                    spellCheck={false}
-                    onChange={(e) =>
-                      setJson((p) => ({ ...p, [selected.name]: e.target.value }))
-                    }
-                    aria-label={`Arguments for ${selected.name} as JSON`}
-                  />
-                ) : fields.length === 0 ? (
+                {fields.length === 0 ? (
                   <p className="sim-noargs">This one takes no arguments. Just call it.</p>
                 ) : (
                   <div className="sim-fields">
@@ -377,27 +394,46 @@ export function Simulator({
                 )}
               </div>
 
-              <div className="sim-result">
-                <span>What came back</span>
-                {!out[selected.name] ? (
-                  <pre className="idle">Nothing yet. Call it and watch the house.</pre>
-                ) : (
-                  <div className={`sim-said ${out[selected.name]!.denied ? "denied" : "ok"}`}>
-                    {out[selected.name]!.line && (
-                      <p>
-                        <b>{out[selected.name]!.line!.title}</b>
-                        {out[selected.name]!.line!.detail}
-                      </p>
-                    )}
-                    <pre>{out[selected.name]!.text}</pre>
-                  </div>
-                )}
+              {/* The same value, on the wire. Editable, and it flows back into
+                  the fields — a control and a request are not two things. */}
+              <div className="sim-wire">
+                <span>What gets sent</span>
+                <textarea
+                  className={`sim-json ${jsonError ? "bad" : ""}`}
+                  value={shownJson}
+                  spellCheck={false}
+                  onChange={(e) => setJson(e.target.value)}
+                  aria-label={`Arguments for ${selected.name} as JSON`}
+                  aria-invalid={Boolean(jsonError)}
+                />
+                {jsonError && <p className="sim-badjson">Not valid JSON — {jsonError}</p>}
               </div>
             </div>
 
-            <button className="sim-run" onClick={run} disabled={busy === selected.name}>
+            <button
+              className="sim-run"
+              onClick={run}
+              disabled={busy === selected.name || Boolean(jsonError)}
+            >
               {busy === selected.name ? "Asking…" : `Ask Haven to ${selected.title.toLowerCase()}`}
             </button>
+
+            <div className="sim-result">
+              <span>What came back</span>
+              {!out[selected.name] ? (
+                <pre className="idle">Nothing yet. Call it and watch the house.</pre>
+              ) : (
+                <div className={`sim-said ${out[selected.name]!.denied ? "denied" : "ok"}`}>
+                  {out[selected.name]!.line && (
+                    <p>
+                      <b>{out[selected.name]!.line!.title}</b>
+                      {out[selected.name]!.line!.detail}
+                    </p>
+                  )}
+                  <pre>{out[selected.name]!.text}</pre>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
