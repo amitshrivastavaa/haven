@@ -119,10 +119,11 @@ export function Banner({ kind, children }: { kind: "info" | "danger"; children: 
 
 /**
  * The rules at a glance: one sentence each, and a dot for which of the three
- * kinds it is. Changing one opens the full screen, where the choice has room
- * to be read rather than guessed from a three-across segmented control.
+ * kinds it is. The full screen has room to state each one properly, which is
+ * all it does — the rules are read-only at runtime, so the control that opens
+ * it must not offer to change them.
  */
-export function RulesCard({ onEdit }: { onEdit: () => void }) {
+export function RulesCard({ onOpen }: { onOpen: () => void }) {
   const dot = (a: ToolAction | undefined) =>
     a === "approve" ? "r-ask" : a === "deny" ? "r-never" : "";
 
@@ -133,8 +134,8 @@ export function RulesCard({ onEdit }: { onEdit: () => void }) {
           <h2>House rules</h2>
           <p className="lead">What your assistant may do.</p>
         </div>
-        <button className="edit" onClick={onEdit}>
-          Change these
+        <button className="edit" onClick={onOpen}>
+          See all
         </button>
       </div>
 

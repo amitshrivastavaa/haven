@@ -543,7 +543,7 @@ export function App() {
 
           <aside className="side">
             <ActivityCard />
-            <RulesCard onEdit={() => setRulesOpen(true)} />
+            <RulesCard onOpen={() => setRulesOpen(true)} />
             <DoorbellFeed events={doorbellEvents} />
           </aside>
         </div>
