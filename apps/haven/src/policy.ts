@@ -1,76 +1,116 @@
-import type { GrenzConfig } from "grenz-webmcp";
+import type { GrenzConfig, ToolAction, ToolPolicy } from "grenz-webmcp";
 
 /**
- * Haven's policy. One object, deny-by-default, written by the site author.
+ * Haven's house rules. One object, deny-by-default, written by the site author.
  *
  * The shape worth noticing is the gradient inside a single device: `lock_door`
  * is free, `unlock_door` needs a human, and `grant_permanent_access` is refused
  * outright. Nothing infers that from the tool names — the site says so, because
  * the site is the only party that knows which way round the risk runs.
+ *
+ * The rules are held mutably and read live on every call, so the House rules
+ * screen changes what the assistant may do the moment you tap. A policy the
+ * resident cannot see or change is not their policy.
  */
-export const policy: GrenzConfig = {
-  defaultAction: "deny",
+type Rule = { -readonly [K in keyof ToolPolicy]: ToolPolicy[K] };
 
-  tools: {
-    get_house_state: { action: "allow" },
+export const rules: Record<string, Rule> = {
+  get_house_state: { action: "allow" },
 
-    // Reading the door log is a reasonable thing for an agent to do. It is also
-    // how the attack arrives, which is why the tool declares
-    // `untrustedContentHint` rather than the policy trying to forbid the read.
-    get_doorbell_events: { action: "allow" },
+  // Reading the door log is a reasonable thing for an agent to do. It is also
+  // how the attack arrives, which is why the tool declares
+  // `untrustedContentHint` rather than the policy trying to forbid the read.
+  get_doorbell_events: { action: "allow" },
 
-    set_thermostat: {
-      action: "allow",
-      constraints: {
-        // A thermostat that accepts 45°C is a heating bill, or a hazard. The
-        // bound is the site's knowledge of its own hardware, not the agent's.
-        targetC: { required: true, min: 10, max: 30 },
-      },
-    },
-
-    toggle_light: {
-      action: "allow",
-      // An agent in a retry loop can cycle a relay hundreds of times a minute.
-      // This is a guardrail against a runaway, not against an attacker.
-      rateLimit: { calls: 8, per: "minute" },
-      constraints: {
-        lightId: { required: true, enum: ["porch", "living", "kitchen", "bedroom"] },
-      },
-    },
-
-    set_scene: {
-      action: "allow",
-      constraints: { scene: { required: true, enum: ["home", "away", "movie", "goodnight"] } },
-    },
-
-    lock_door: { action: "allow" },
-
-    unlock_door: {
-      action: "approve",
-      effect: "Unlocks your front door. Anyone outside can walk in.",
-      constraints: { doorId: { required: true, enum: ["front", "back"] } },
-    },
-
-    disarm_alarm: {
-      action: "approve",
-      effect: "Disarms the burglar alarm. No one will be notified if the house is entered.",
-    },
-
-    // No approval card for this one. A card is for decisions a human should
-    // make; standing access for a stranger is not a decision an agent should
-    // be able to put in front of someone in the first place.
-    grant_permanent_access: { action: "deny" },
-
-    // The EcoSaver partner widget. The site knows perfectly well that this
-    // moves the thermostat, and says so here. When the widget registers itself
-    // claiming `readOnlyHint: true`, that claim contradicts this line — and a
-    // contradiction between the site's classification and the tool's own
-    // annotation is a denial, not a warning.
-    eco_optimize: {
-      action: "approve",
-      effect: "Lets EcoSaver change your thermostat setpoint.",
+  set_thermostat: {
+    action: "allow",
+    constraints: {
+      // A thermostat that accepts 45°C is a heating bill, or a hazard. The
+      // bound is the site's knowledge of its own hardware, not the agent's.
+      targetC: { required: true, min: 10, max: 30 },
     },
   },
 
+  toggle_light: {
+    action: "allow",
+    // An agent in a retry loop can cycle a relay hundreds of times a minute.
+    // This is a guardrail against a runaway, not against an attacker.
+    rateLimit: { calls: 8, per: "minute" },
+    constraints: {
+      lightId: { required: true, enum: ["porch", "living", "kitchen", "bedroom"] },
+    },
+  },
+
+  set_scene: {
+    action: "allow",
+    constraints: { scene: { required: true, enum: ["home", "away", "movie", "goodnight"] } },
+  },
+
+  lock_door: { action: "allow" },
+
+  unlock_door: {
+    action: "approve",
+    effect: "Unlocks your front door. Anyone outside can walk in.",
+    constraints: { doorId: { required: true, enum: ["front", "back"] } },
+  },
+
+  disarm_alarm: {
+    action: "approve",
+    effect: "Disarms the burglar alarm. No one will be notified if the house is entered.",
+  },
+
+  // No approval card for this one. A card is for decisions a human should
+  // make; standing access for a stranger is not a decision an agent should
+  // be able to put in front of someone in the first place.
+  grant_permanent_access: { action: "deny" },
+
+  // The EcoSaver partner widget. The site knows perfectly well that this
+  // moves the thermostat, and says so here. When the widget registers itself
+  // claiming `readOnlyHint: true`, that claim contradicts this line — and a
+  // contradiction between the site's classification and the tool's own
+  // annotation is a denial, not a warning.
+  eco_optimize: {
+    action: "approve",
+    effect: "Lets EcoSaver change your thermostat setpoint.",
+  },
+};
+
+export const policy: GrenzConfig = {
+  defaultAction: "deny",
+  tools: rules,
   approval: { timeoutMs: 60_000 },
 };
+
+/** Changes what the assistant may do, from the next call onwards. */
+export function setRuleAction(tool: string, action: ToolAction): void {
+  const rule = rules[tool];
+  if (rule) rule.action = action;
+}
+
+/**
+ * The rules, said the way someone who lives here would say them.
+ *
+ * Deliberately separate from the policy above: the policy is the contract, this
+ * is the reading of it. A rule with no entry here is one the resident has no
+ * business tuning, and the screen leaves it out.
+ */
+export interface RuleCopy {
+  tool: string;
+  group: string;
+  what: string;
+  /** The extra the policy imposes regardless of which of the three is chosen. */
+  limit?: string;
+}
+
+export const RULE_COPY: RuleCopy[] = [
+  { tool: "lock_door", group: "Front door", what: "Lock it" },
+  { tool: "unlock_door", group: "Front door", what: "Unlock it" },
+  { tool: "grant_permanent_access", group: "Front door", what: "Give someone permanent access" },
+  { tool: "disarm_alarm", group: "Alarm", what: "Turn the alarm off" },
+  { tool: "set_thermostat", group: "Heating", what: "Change the temperature", limit: "never outside 10–30°" },
+  { tool: "eco_optimize", group: "Heating", what: "Let EcoSaver adjust it", limit: "a partner app" },
+  { tool: "toggle_light", group: "Lights", what: "Switch a light", limit: "at most 8 times a minute" },
+  { tool: "set_scene", group: "Lights", what: "Set a scene" },
+  { tool: "get_house_state", group: "Reading things", what: "See how the house is set" },
+  { tool: "get_doorbell_events", group: "Reading things", what: "Read the door intercom", limit: "written by strangers" },
+];

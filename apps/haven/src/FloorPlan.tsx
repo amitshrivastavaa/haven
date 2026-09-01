@@ -63,6 +63,23 @@ export function spotFor(tool: string, input?: unknown): Spot {
   }
 }
 
+/** Click plus Enter/Space, for anything on the plan you can operate. */
+function pressable(onPress: () => void, label: string) {
+  return {
+    role: "button",
+    tabIndex: 0,
+    "aria-label": label,
+    onClick: onPress,
+    onKeyDown: (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        e.stopPropagation();
+        onPress();
+      }
+    },
+  } as const;
+}
+
 function Room({
   id,
   label,
@@ -93,7 +110,10 @@ function Room({
   children?: React.ReactNode;
 }) {
   return (
-    <g className={`fp-room ${on ? "lit" : ""}`} onClick={onClick}>
+    <g
+      className={`fp-room ${on ? "lit" : ""}`}
+      {...(onClick ? pressable(onClick, `${label}, light ${on ? "on" : "off"}`) : {})}
+    >
       <clipPath id={`clip-${id}`}>
         <rect x={x} y={y} width={w} height={h} />
       </clipPath>
@@ -120,11 +140,15 @@ export function FloorPlan({
   agent,
   onLight,
   onLock,
+  onTarget,
+  onAlarm,
 }: {
   house: House;
   agent: { at: Spot; blocked: boolean } | null;
   onLight: (id: LightId) => void;
   onLock: () => void;
+  onTarget: (targetC: number) => void;
+  onAlarm: () => void;
 }) {
   const lit = (id: LightId) => house.lights.find((l) => l.id === id)?.on ?? false;
   const [ax, ay] = agent ? AT[agent.at] : AT.living;
@@ -173,13 +197,21 @@ export function FloorPlan({
             <rect x={252} y={320} width={96} height={34} rx={5} />
           </g>
           <g onClick={(e) => e.stopPropagation()}>
-            <rect className="fp-chip" x={352} y={374} width={116} height={54} rx={12} />
-            <text className="fp-chip-t fp-temp" x={368} y={399}>
+            <rect className="fp-chip" x={330} y={370} width={150} height={62} rx={13} />
+            <g className="fp-step" {...pressable(() => onTarget(house.targetC - 1), "Turn the heating down")}>
+              <circle cx={352} cy={401} r={15} />
+              <path d="M344 401 h16" />
+            </g>
+            <text className="fp-chip-t fp-temp" x={405} y={399} textAnchor="middle">
               {house.targetC}°
             </text>
-            <text className="fp-chip-s" x={368} y={416}>
-              Heating · now {house.temperatureC}°
+            <text className="fp-chip-s" x={405} y={417} textAnchor="middle">
+              now {house.temperatureC}°
             </text>
+            <g className="fp-step" {...pressable(() => onTarget(house.targetC + 1), "Turn the heating up")}>
+              <circle cx={458} cy={401} r={15} />
+              <path d="M450 401 h16 M458 393 v16" />
+            </g>
           </g>
         </Room>
 
@@ -187,13 +219,19 @@ export function FloorPlan({
           <g className="fp-furn" clipPath="url(#clip-hal)">
             <rect x={646} y={382} width={52} height={58} rx={6} />
           </g>
-          <g onClick={(e) => e.stopPropagation()}>
+          <g
+            className="fp-tap"
+            {...pressable(
+              onAlarm,
+              house.alarmArmed ? "Turn the alarm off" : "Turn the alarm on",
+            )}
+          >
             <rect className="fp-chip" x={504} y={296} width={104} height={44} rx={11} />
             <text className="fp-chip-t" x={518} y={317}>
               Alarm
             </text>
             <text className={`fp-chip-s ${house.alarmArmed ? "" : "bad"}`} x={518} y={332}>
-              {house.alarmArmed ? "Armed" : "Disarmed"}
+              {house.alarmArmed ? "Armed" : "Off"}
             </text>
           </g>
         </Room>
@@ -213,7 +251,7 @@ export function FloorPlan({
         {/* The porch is outside, and it has its own light. */}
         <g
           className={`fp-room fp-porch ${lit("porch") ? "lit" : ""}`}
-          onClick={() => onLight("porch")}
+          {...pressable(() => onLight("porch"), `Porch, light ${lit("porch") ? "on" : "off"}`)}
         >
           <clipPath id="clip-por">
             <rect x={556} y={470} width={108} height={62} rx={4} />
@@ -231,7 +269,10 @@ export function FloorPlan({
           </text>
         </g>
 
-        <g className={`fp-door ${house.doorLocked ? "" : "open"}`} onClick={onLock}>
+        <g
+          className={`fp-door ${house.doorLocked ? "" : "open"}`}
+          {...pressable(onLock, house.doorLocked ? "Front door, locked" : "Lock the front door")}
+        >
           <path className="fp-swing" d="M650 460 A90 90 0 0 0 560 370" />
           <rect className="fp-leaf" x={556} y={372} width={8} height={88} rx={3} />
           <rect className="fp-bolt" x={612} y={461} width={42} height={8} rx={4} />

@@ -22,14 +22,22 @@ const ShieldOff = ({ size = 15 }: { size?: number }) => (
  * below, deliberately separated — a resident has no reason to sabotage their
  * own home, and mixing the two made it impossible to tell which was which.
  */
+export type Tab = "home" | "rules" | "activity";
+
 export function Header({
   webmcp,
   polyfilled,
   protection,
+  tab,
+  onTab,
+  unread,
 }: {
   webmcp: boolean;
   polyfilled: boolean;
   protection: boolean;
+  tab: Tab;
+  onTab: (t: Tab) => void;
+  unread: number;
 }) {
   return (
     <header className="header">
@@ -40,6 +48,26 @@ export function Header({
           <div className="brand-sub">your home, with an assistant</div>
         </div>
       </div>
+
+      <nav className="tabs" aria-label="Sections">
+        {(
+          [
+            ["home", "Home"],
+            ["rules", "House rules"],
+            ["activity", "Activity"],
+          ] as const
+        ).map(([id, label]) => (
+          <button
+            key={id}
+            className={`tab ${tab === id ? "on" : ""}`}
+            aria-current={tab === id ? "page" : undefined}
+            onClick={() => onTab(id)}
+          >
+            {label}
+            {id === "activity" && unread > 0 && <span className="tab-count">{unread}</span>}
+          </button>
+        ))}
+      </nav>
 
       <div className="header-tools">
         <span
@@ -122,6 +150,32 @@ export function DemoBar({
         Send a request by hand
       </button>
     </div>
+  );
+}
+
+export function LastAction({
+  event,
+  onOpen,
+}: {
+  event: { tool: string; decision: string; message: string } | null;
+  onOpen: () => void;
+}) {
+  if (!event) return null;
+  const word =
+    event.decision === "deny"
+      ? "Refused"
+      : event.decision === "require_approval"
+        ? "You allowed"
+        : event.decision === "unprotected"
+          ? "Ran unprotected"
+          : "Allowed";
+  return (
+    <button className={`lastact ${event.decision}`} onClick={onOpen}>
+      <span className="lastact-word">{word}</span>
+      <code>{event.tool}</code>
+      <span className="lastact-msg">{event.message}</span>
+      <span className="lastact-more">See all →</span>
+    </button>
   );
 }
 

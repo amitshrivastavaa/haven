@@ -3,7 +3,8 @@ import { GrenzTimeline, useGrenzTool } from "grenz-webmcp/react";
 import { g } from "./grenz-instance";
 import { doorbellEvents, initialHouse, SCENES } from "./house";
 import { Simulator } from "./Simulator";
-import { Banner, DemoBar, DoorbellFeed, Header, SceneRow } from "./components";
+import { Banner, DemoBar, DoorbellFeed, Header, LastAction, SceneRow, type Tab } from "./components";
+import { Rules } from "./Rules";
 import { FloorPlan, spotFor, type Spot } from "./FloorPlan";
 import { loadEcoSaver, loadHomeInsights, unloadEcoSaver, unloadHomeInsights } from "./widgets";
 import type { House, LightId, SceneId } from "./types";
@@ -20,6 +21,9 @@ export function App() {
   const [breach, setBreach] = useState<string | null>(null);
   const [simOpen, setSimOpen] = useState(() => new URLSearchParams(location.search).has("sim"));
   const [agent, setAgent] = useState<{ at: Spot; blocked: boolean } | null>(null);
+  const [tab, setTab] = useState<Tab>("home");
+  const [last, setLast] = useState<{ tool: string; decision: string; message: string } | null>(null);
+  const [unread, setUnread] = useState(0);
 
   const webmcp = useMemo(hasWebMCP, []);
   const polyfilled = useMemo(() => Boolean((window as any).__grenzPolyfilled), []);
@@ -45,6 +49,8 @@ export function App() {
       const last = events[events.length - 1];
       if (!last || last.kind === "register") return;
       setAgent({ at: spotFor(last.tool, last.input), blocked: last.decision === "deny" });
+      setLast({ tool: last.tool, decision: last.decision, message: last.message });
+      setUnread((n) => n + 1);
       clearTimeout(timer);
       timer = setTimeout(() => setAgent(null), 2600);
     });
@@ -257,7 +263,17 @@ export function App() {
 
   return (
     <div className="app">
-      <Header webmcp={webmcp} polyfilled={polyfilled} protection={protection} />
+      <Header
+        webmcp={webmcp}
+        polyfilled={polyfilled}
+        protection={protection}
+        tab={tab}
+        onTab={(next) => {
+          setTab(next);
+          if (next === "activity") setUnread(0);
+        }}
+        unread={unread}
+      />
 
       <DemoBar
         protection={protection}
@@ -294,8 +310,16 @@ export function App() {
       )}
 
       <div className="main">
+        {tab === "home" && (
         <div className="col house">
           <div className="col-scroll">
+            <LastAction
+              event={last}
+              onOpen={() => {
+                setTab("activity");
+                setUnread(0);
+              }}
+            />
             <SceneRow
               scene={house.scene}
               onScene={(s) => {
@@ -321,6 +345,14 @@ export function App() {
               // Locking is always safe. Unlocking has to come through the
               // policy, so there is deliberately no way to do it from here.
               onLock={() => patch({ doorLocked: true })}
+              // Clamped to the same 10-30 the policy imposes on the assistant:
+              // a control that lets a person do what a rule forbids the agent
+              // would make the rule look arbitrary rather than physical.
+              onTarget={(next) => patch({ targetC: Math.min(30, Math.max(10, next)) })}
+              // Arming is safe. Disarming by hand is the resident standing in
+              // their own hallway, which is a different act from an agent
+              // doing it on a stranger's say-so.
+              onAlarm={() => patch({ alarmArmed: !house.alarmArmed })}
             />
 
             <div className="access-line">
@@ -329,8 +361,20 @@ export function App() {
             <DoorbellFeed events={doorbellEvents} />
           </div>
         </div>
+        )}
 
-        <div className="col rail">
+        {tab === "rules" && (
+          <div className="col house">
+            <div className="col-scroll">
+              <Rules />
+            </div>
+          </div>
+        )}
+
+        {/* Always mounted, hidden when another tab is showing: the timeline is a
+            live subscription, and remounting it on every tab switch would throw
+            away its scroll position and re-run its shadow-root setup. */}
+        <div className={`col rail ${tab === "activity" ? "" : "hidden"}`}>
           <GrenzTimeline g={g} className="rail-timeline" />
           <div className="rail-foot">
             <strong>Everything</strong> the assistant does here passes your house rules first —
