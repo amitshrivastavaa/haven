@@ -488,7 +488,7 @@ body.tech .ev .tk { display: block; }
    as an agent's, so you have to be able to watch it land. Fixed height: the
    tool list scrolls, the panes scroll, the strip does not grow. */
 .sim {
-  position: fixed; inset: auto 0 0 0; z-index: 55; height: 272px;
+  position: fixed; inset: auto 0 0 0; z-index: 55; height: 304px;
   background: var(--panel); border-top: 1px solid var(--line);
   box-shadow: 0 -20px 50px -20px rgba(20, 19, 26, .4);
   display: flex; flex-direction: column;
@@ -506,47 +506,100 @@ body.tech .ev .tk { display: block; }
 .sim-empty { padding: 30px 20px; font-size: 13px; color: var(--faint); }
 .sim-empty strong { display: block; color: var(--text); margin-bottom: 4px; }
 
-.sim-body { flex: 1; min-height: 0; display: grid; grid-template-columns: 208px minmax(0, 1fr); }
-.sim-list { overflow-y: auto; border-right: 1px solid var(--line-soft); padding: 8px; display: flex; flex-direction: column; gap: 1px; }
+/* minmax(0, 1fr) on the ROW too, and min-height: 0 on both children. A grid
+   item's automatic minimum size is its content, so without these the detail
+   pane refuses to shrink to its track and its Call button — and the tail of
+   the tool list — overflow past the bottom of the screen. */
+.sim-body { flex: 1; min-height: 0; display: grid; grid-template-columns: 208px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
+.sim-list { min-height: 0; overflow-y: auto; border-right: 1px solid var(--line-soft); padding: 8px; display: flex; flex-direction: column; gap: 1px; }
 .sim-list button {
-  display: flex; align-items: center; gap: 7px; text-align: left; padding: 7px 10px;
-  border-radius: 8px; font-family: var(--mono); font-size: 11.5px; color: var(--dim);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  display: flex; align-items: center; gap: 7px; text-align: left; padding: 8px 10px;
+  border-radius: 8px; font-size: 12.5px; font-weight: 600; color: var(--dim);
 }
+.sim-list button b { font-weight: inherit; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sim-list button:hover { background: var(--sunk); color: var(--text); }
 .sim-list button[aria-selected="true"] { background: var(--accent); color: var(--on-accent); }
 /* The third-party mark has to survive being on the inked selected row. */
 .sim-list .dot { flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--warm); margin-left: auto; }
 .sim-list button[aria-selected="true"] .dot { background: var(--lamp); }
 
-.sim-detail { min-width: 0; padding: 13px 20px 14px; display: flex; flex-direction: column; gap: 0; }
-.sim-tool-head { display: flex; align-items: center; gap: 9px; flex: none; }
-.sim-tool-head code { font-family: var(--mono); font-size: 13px; font-weight: 500; }
-.sim-tool-desc { margin: 5px 0 10px; font-size: 12px; color: var(--faint); line-height: 1.5; flex: none; }
-
-.sim-io { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
-.sim-io > label, .sim-result { display: flex; flex-direction: column; min-height: 0; }
-.sim-io span {
-  font-family: var(--mono); font-size: 10px; font-weight: 500; letter-spacing: .18em;
-  text-transform: uppercase; color: var(--faint); margin-bottom: 5px;
+.sim-detail { min-width: 0; min-height: 0; overflow: hidden; padding: 12px 20px 14px; display: flex; flex-direction: column; }
+.sim-tool-head { display: flex; align-items: center; gap: 10px; flex: none; }
+.sim-tool-head h3 { margin: 0; font-family: var(--display); font-size: 15px; font-weight: 800; letter-spacing: -.02em; }
+.sim-tool-head code { font-family: var(--mono); font-size: 11.5px; color: var(--faint); }
+.sim-raw {
+  margin-left: auto; padding: 5px 11px; border-radius: 999px; border: 1px solid var(--line);
+  background: var(--panel); font-size: 11.5px; font-weight: 650; color: var(--faint);
 }
-.sim-io textarea {
+.sim-raw:hover { color: var(--text); border-color: var(--faint); }
+.sim-raw[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: transparent; }
+.sim-tool-desc { margin: 4px 0 10px; font-size: 12px; color: var(--faint); line-height: 1.5; flex: none; }
+
+.sim-io { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 14px; }
+.sim-args, .sim-result { display: flex; flex-direction: column; min-height: 0; }
+.sim-io > div > span {
+  font-family: var(--mono); font-size: 10px; font-weight: 500; letter-spacing: .18em;
+  text-transform: uppercase; color: var(--faint); margin-bottom: 6px; flex: none;
+}
+
+/* The fields. Two columns while they fit, so a two-argument tool still lands
+   on one row and the Call button never moves. */
+.sim-fields {
+  flex: 1; min-height: 0; overflow-y: auto; display: grid; gap: 9px 14px;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); align-content: start;
+}
+.sim-fields label { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.f-name { display: flex; align-items: baseline; gap: 6px; font-size: 12px; font-weight: 650; color: var(--text); }
+.f-name em { font-style: normal; font-size: 11px; font-weight: 500; color: var(--faint); }
+/* The site's own bound, quoted from the policy the call is about to meet. */
+.f-name i {
+  margin-left: auto; font-style: normal; font-family: var(--mono); font-size: 10px;
+  color: var(--warm); background: var(--warm-soft); border: 1px solid var(--warm-line);
+  padding: 1px 6px; border-radius: 999px; white-space: nowrap;
+}
+.sim-fields input, .sim-fields select {
+  padding: 7px 10px; border-radius: 9px; border: 1px solid var(--line);
+  background: var(--panel); color: var(--text); font-size: 13px; font-family: inherit;
+  width: 100%; min-width: 0;
+}
+.sim-fields select { cursor: pointer; }
+.sim-fields input:focus-visible, .sim-fields select:focus-visible { outline: none; border-color: var(--accent-line); }
+.sim-noargs { margin: 0; font-size: 12.5px; color: var(--faint); }
+
+.sim-json {
   flex: 1; min-height: 0; resize: none; padding: 9px 11px; border-radius: 9px;
   border: 1px solid var(--line); background: var(--sunk); color: var(--text);
   font-family: var(--mono); font-size: 12px; line-height: 1.5;
 }
-.sim-io textarea:focus-visible { outline: none; border-color: var(--accent-line); background: var(--panel); }
-.sim-result pre {
-  flex: 1; min-height: 0; margin: 0; overflow: auto; padding: 9px 11px; border-radius: 9px;
+.sim-json:focus-visible { outline: none; border-color: var(--accent-line); background: var(--panel); }
+
+.sim-result pre.idle {
+  flex: 1; min-height: 0; margin: 0; padding: 9px 11px; border-radius: 9px;
   font-family: var(--mono); font-size: 11.5px; line-height: 1.5;
-  white-space: pre-wrap; word-break: break-word;
+  background: var(--sunk); border: 1px dashed var(--line); color: var(--faint);
 }
-.sim-result pre.idle { background: var(--sunk); border: 1px dashed var(--line); color: var(--faint); }
-.sim-result pre.ok { background: var(--safe-soft); color: var(--safe); }
-.sim-result pre.denied { background: var(--stop-soft); color: var(--stop); }
+/* The answer in words first, the payload under it. Same sentence the Activity
+   rail shows, from the same function — a call made here is a real call. */
+.sim-said {
+  flex: 1; min-height: 0; display: flex; flex-direction: column;
+  border-radius: 9px; overflow: hidden; border: 1px solid transparent;
+}
+.sim-said p { margin: 0; padding: 9px 12px; font-size: 13px; line-height: 1.45; flex: none; }
+.sim-said b { display: block; font-weight: 700; }
+.sim-said.ok { background: var(--safe-soft); border-color: var(--safe-line); color: var(--safe); }
+.sim-said.denied { background: var(--stop-soft); border-color: var(--stop-line); color: var(--stop); }
+/* The payload follows the app's own "Show technical detail" switch. In a strip
+   this short it would otherwise be squeezed to a two-line sliver, and the
+   sentence above it already says what happened. */
+.sim-said pre { display: none; }
+body.tech .sim-said pre {
+  display: block; flex: 1; min-height: 0; margin: 0; overflow: auto; padding: 8px 12px 10px;
+  font-family: var(--mono); font-size: 11px; line-height: 1.5; opacity: .72;
+  white-space: pre-wrap; word-break: break-word; border-top: 1px solid currentColor;
+}
 .sim-run {
-  flex: none; align-self: flex-start; margin-top: 11px; padding: 8px 16px; border-radius: 9px;
-  background: var(--accent); color: var(--on-accent); font-size: 12.5px; font-weight: 700;
+  flex: none; align-self: flex-start; margin-top: 11px; padding: 9px 18px; border-radius: 999px;
+  background: var(--accent); color: var(--on-accent); font-size: 13px; font-weight: 700;
 }
 .sim-run:disabled { opacity: .4; cursor: not-allowed; }
 
@@ -662,5 +715,6 @@ blockquote cite { display: block; margin-top: 12px; font-size: 12.5px; font-styl
   .sim-list { flex-direction: row; border-right: none; border-bottom: 1px solid var(--line-soft); overflow-x: auto; overflow-y: hidden; }
   .sim-list button { flex: none; }
   .sim-detail { padding: 12px 14px 14px; }
-  .sim-io { grid-template-columns: 1fr; grid-template-rows: minmax(70px, 1fr) minmax(70px, 1fr); }
+  .sim-io { grid-template-columns: 1fr; grid-template-rows: minmax(80px, 1fr) minmax(70px, 1fr); }
+  .sim-fields { grid-template-columns: 1fr; }
 }

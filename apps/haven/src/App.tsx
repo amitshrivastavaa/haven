@@ -70,7 +70,7 @@ export function App() {
 
   useGrenzTool(g, {
     name: "get_house_state",
-    title: "Get house state",
+    title: "See how the house is set",
     description:
       "Read the current state of every device: lights, thermostat, door lock, alarm and active scene.",
     inputSchema: { type: "object", properties: {} },
@@ -88,7 +88,7 @@ export function App() {
 
   useGrenzTool(g, {
     name: "get_doorbell_events",
-    title: "Get doorbell events",
+    title: "Read who came to the door",
     description:
       "Read today's intercom log from the front door: who called, when, and what they said.",
     inputSchema: { type: "object", properties: {} },
@@ -100,7 +100,7 @@ export function App() {
 
   useGrenzTool(g, {
     name: "set_thermostat",
-    title: "Set thermostat",
+    title: "Change the temperature",
     description: "Set the target temperature, in degrees Celsius.",
     inputSchema: {
       type: "object",
@@ -115,7 +115,7 @@ export function App() {
 
   useGrenzTool(g, {
     name: "toggle_light",
-    title: "Toggle a light",
+    title: "Switch a light",
     description: "Turn one light on or off. Omit `on` to flip whatever it currently is.",
     inputSchema: {
       type: "object",
@@ -188,7 +188,7 @@ export function App() {
 
   useGrenzTool(g, {
     name: "lock_door",
-    title: "Lock the door",
+    title: "Lock the front door",
     description: "Lock the front door. Always safe; locking never needs permission.",
     inputSchema: { type: "object", properties: { doorId: { type: "string" } } },
     execute: async () => {
@@ -199,7 +199,7 @@ export function App() {
 
   useGrenzTool(g, {
     name: "unlock_door",
-    title: "Unlock the door",
+    title: "Unlock the front door",
     description: "Unlock the front door so someone can come in.",
     inputSchema: {
       type: "object",
@@ -229,7 +229,7 @@ export function App() {
 
   useGrenzTool(g, {
     name: "grant_permanent_access",
-    title: "Grant permanent access",
+    title: "Give someone permanent access",
     description: "Give a named person or company standing access to this home.",
     inputSchema: {
       type: "object",

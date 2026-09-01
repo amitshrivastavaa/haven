@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { GrenzInstance, RegistryEntry } from "grenz-webmcp";
+import type { Constraint, GrenzInstance, RegistryEntry } from "grenz-webmcp";
+import { rules } from "./policy";
+import { toLine, type Line } from "./Feed";
 
 /**
- * The dev simulator.
+ * The tool simulator.
  *
  * It is backed by Grenz's OWN registry, not by `getTools()`, so it still works
  * on a browser with no WebMCP at all — which is also the browser most people
@@ -10,18 +12,30 @@ import type { GrenzInstance, RegistryEntry } from "grenz-webmcp";
  * the same call through `getTools()` + `executeTool()` to show that an in-page
  * JavaScript caller and an out-of-page agent hit the identical governed surface.
  *
- * One tool at a time, in a strip. It used to be every tool at once as a grid of
- * cards in a 74vh sheet, which had two faults: you only ever run one, and the
- * sheet buried the house — so the call landed somewhere you could not see it.
- * The whole claim being demonstrated is that a hand-written call goes through
- * the same rules and moves the same room, and you have to be able to watch that.
+ * Controls, not a JSON textarea. This used to be a grid of cards each holding
+ * raw arguments to hand-edit, which asked a visitor to compose `{"doorId":
+ * "front"}` in order to try a door — a developer console wearing a product's
+ * clothes.
  *
- * Raw JSON stays. Unlike the approval card, this surface is for someone
- * checking the mechanism, and the point is to type arguments the site never
- * anticipated.
+ * The fields are built from the tool's own `inputSchema` and from the site's
+ * policy for it, which is the part worth watching: the bound beside a field is
+ * the same number the pipeline will check the value against, read from the same
+ * object. It is shown and NOT enforced, so you can put 45° in a box labelled
+ * 10–30 and watch the house rules refuse it. A form that quietly clamped the
+ * value would be hiding the only thing this screen is for.
+ *
+ * The JSON is still one click away, for arguments no form could anticipate.
+ *
+ * The answer is phrased the same way, and by the same function the Activity
+ * rail uses — a call made here is a real call, so it lands in the real
+ * timeline, and the timeline already knows how to say "Switched the living
+ * light" or "It asked for a value your house does not allow". The raw payload
+ * sits underneath it, because for the one reader who wants it, it is the
+ * point.
  */
 
-const SEEDS: Record<string, unknown> = {
+/** Seed values, so every tool is one click from doing something. */
+const SEEDS: Record<string, Record<string, unknown>> = {
   get_house_state: {},
   get_doorbell_events: {},
   set_thermostat: { targetC: 19 },
@@ -36,7 +50,107 @@ const SEEDS: Record<string, unknown> = {
   home_insights: { postcode: "SW1A 1AA", awaySchedule: "Weekdays 09:00-18:00", alarmCode: "4417" },
 };
 
+/**
+ * Argument names as a person would say them. Same principle as a policy's
+ * `describe`: the site wrote the tool, so the site is the one that can say
+ * `doorId` means "which door". A tool with no entry keeps its own key — better
+ * an honest machine name than a guessed-at English one.
+ */
+const LABELS: Record<string, string> = {
+  doorId: "Which door",
+  lightId: "Which light",
+  on: "Turn it",
+  targetC: "Temperature",
+  minutes: "For how long",
+  scene: "Scene",
+  who: "Who",
+  aggressiveness: "How hard to push",
+  postcode: "Postcode",
+  awaySchedule: "When the house is empty",
+  alarmCode: "Alarm code",
+};
+
+const UNITS: Record<string, string> = { targetC: "°C", minutes: "minutes" };
+
 type Mode = "grenz" | "native";
+
+interface Field {
+  key: string;
+  type: "string" | "number" | "boolean";
+  label: string;
+  unit?: string;
+  /** From the site's policy, shown beside the field and not enforced. */
+  options?: readonly (string | number)[];
+  bound?: string;
+  required: boolean;
+}
+
+interface Schema {
+  properties?: Record<string, { type?: string; description?: string }>;
+  required?: string[];
+}
+
+/** The controls for one tool, from its schema and the site's rules for it. */
+function fieldsFor(entry: RegistryEntry): Field[] {
+  const schema = (entry.inputSchema ?? {}) as Schema;
+  const constraints = (rules[entry.name]?.constraints ?? {}) as Record<string, Constraint>;
+  const keys = new Set([...Object.keys(schema.properties ?? {}), ...Object.keys(constraints)]);
+
+  return [...keys].map((key) => {
+    const c = constraints[key];
+    const declared = schema.properties?.[key]?.type;
+    const type: Field["type"] =
+      declared === "number" || declared === "integer"
+        ? "number"
+        : declared === "boolean"
+          ? "boolean"
+          : typeof c?.min === "number" || typeof c?.max === "number"
+            ? "number"
+            : "string";
+
+    const bounds: string[] = [];
+    if (typeof c?.min === "number" || typeof c?.max === "number")
+      bounds.push(`${c?.min ?? "…"}–${c?.max ?? "…"}`);
+    if (typeof c?.maxLength === "number") bounds.push(`up to ${c.maxLength} characters`);
+
+    return {
+      key,
+      type,
+      label: LABELS[key] ?? key,
+      unit: UNITS[key],
+      options: c?.enum,
+      bound: bounds.join(" · ") || undefined,
+      required: Boolean(c?.required) || Boolean(schema.required?.includes(key)),
+    };
+  });
+}
+
+/** Field strings back into the JSON an agent would have sent. */
+function toInput(fields: Field[], values: Record<string, string>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const f of fields) {
+    const raw = values[f.key];
+    // A blank field is an omitted argument, not an empty one — which is how you
+    // watch a `required` constraint do its job.
+    if (raw === undefined || raw === "") continue;
+    if (f.type === "number") {
+      const n = Number(raw);
+      out[f.key] = Number.isNaN(n) ? raw : n;
+    } else if (f.type === "boolean") {
+      out[f.key] = raw === "true";
+    } else {
+      out[f.key] = raw;
+    }
+  }
+  return out;
+}
+
+function seedValues(entry: RegistryEntry, fields: Field[]): Record<string, string> {
+  const seed = SEEDS[entry.name] ?? {};
+  return Object.fromEntries(
+    fields.map((f) => [f.key, seed[f.key] === undefined ? "" : String(seed[f.key])]),
+  );
+}
 
 export function Simulator({
   g,
@@ -48,8 +162,10 @@ export function Simulator({
   onClose: () => void;
 }) {
   const [tools, setTools] = useState<RegistryEntry[]>(() => g.listTools());
-  const [args, setArgs] = useState<Record<string, string>>({});
-  const [out, setOut] = useState<Record<string, { text: string; denied: boolean }>>({});
+  const [values, setValues] = useState<Record<string, Record<string, string>>>({});
+  const [json, setJson] = useState<Record<string, string>>({});
+  const [raw, setRaw] = useState(false);
+  const [out, setOut] = useState<Record<string, { text: string; denied: boolean; line: Line | null }>>({});
   const [busy, setBusy] = useState<string | null>(null);
   const [mode, setMode] = useState<Mode>("grenz");
   const [picked, setPicked] = useState<string | null>(null);
@@ -66,64 +182,87 @@ export function Simulator({
   // signal aborts — so the selection is resolved against the live list rather
   // than trusted to still exist.
   const selected = tools.find((t) => t.name === picked) ?? tools[0];
+  const fields = useMemo(() => (selected ? fieldsFor(selected) : []), [selected]);
+  const current = selected
+    ? (values[selected.name] ?? seedValues(selected, fields))
+    : {};
 
-  const seeded = useMemo(
-    () =>
-      Object.fromEntries(
-        tools.map((t) => [t.name, args[t.name] ?? JSON.stringify(SEEDS[t.name] ?? {}, null, 2)]),
-      ),
-    [tools, args],
-  );
+  const input = useMemo(() => toInput(fields, current), [fields, current]);
+  const rawText = selected
+    ? (json[selected.name] ?? JSON.stringify(input, null, 2))
+    : "{}";
 
-  const run = useCallback(
-    async (name: string) => {
-      let input: unknown;
+  const set = (key: string, value: string) => {
+    if (!selected) return;
+    setValues((p) => ({ ...p, [selected.name]: { ...current, [key]: value } }));
+    // The JSON view is a projection of the fields until someone edits it, so
+    // changing a field has to drop a stale hand-written override.
+    setJson((p) => {
+      const { [selected.name]: _drop, ...rest } = p;
+      return rest;
+    });
+  };
+
+  const run = useCallback(async () => {
+    if (!selected) return;
+    const name = selected.name;
+    let payload: unknown = input;
+
+    if (raw) {
       try {
-        input = JSON.parse(seeded[name] || "{}");
+        payload = JSON.parse(rawText || "{}");
       } catch (e) {
         setOut((p) => ({
           ...p,
-          [name]: { text: `Invalid JSON: ${(e as Error).message}`, denied: true },
+          [name]: { text: `That is not valid JSON: ${(e as Error).message}`, denied: true, line: null },
         }));
         return;
       }
+    }
 
-      setBusy(name);
-      try {
-        let result: unknown;
-        if (mode === "native") {
-          const mc = document.modelContext ?? navigator.modelContext;
-          if (!mc) throw new Error("WebMCP is not available in this browser");
-          const native = await mc.getTools();
-          const target = native.find((t) => t.name === name);
-          if (!target) throw new Error(`"${name}" is not in getTools()`);
-          // Native executeTool takes the arguments as a JSON string, not an object.
-          result = await mc.executeTool(target, JSON.stringify(input));
-        } else {
-          result = await g.callTool(name, input);
-        }
-
-        const text = typeof result === "string" ? result : JSON.stringify(result, null, 2);
-        // A denial is a normal, readable result — that is the whole point of
-        // resolving rather than rejecting.
-        const denied = text.includes('"decision"') && text.includes('"deny"');
-        setOut((p) => ({ ...p, [name]: { text: text ?? "undefined", denied } }));
-      } catch (e) {
-        setOut((p) => ({ ...p, [name]: { text: `Threw: ${(e as Error).message}`, denied: true } }));
-      } finally {
-        setBusy(null);
+    setBusy(name);
+    try {
+      let result: unknown;
+      if (mode === "native") {
+        const mc = document.modelContext ?? navigator.modelContext;
+        if (!mc) throw new Error("WebMCP is not available in this browser");
+        const native = await mc.getTools();
+        const target = native.find((t) => t.name === name);
+        if (!target) throw new Error(`"${name}" is not in getTools()`);
+        // Native executeTool takes the arguments as a JSON string, not an object.
+        result = await mc.executeTool(target, JSON.stringify(payload));
+      } else {
+        result = await g.callTool(name, payload);
       }
-    },
-    [g, mode, seeded],
-  );
+
+      const text = typeof result === "string" ? result : JSON.stringify(result, null, 2);
+      // A denial is a normal, readable result — that is the whole point of
+      // resolving rather than rejecting.
+      const denied = text.includes('"decision"') && text.includes('"deny"');
+      // The call really happened, so it is really in the timeline — and the
+      // timeline is where the human phrasing already lives.
+      const event = [...g.getTimeline()].reverse().find((e) => e.kind === "call" && e.tool === name);
+      setOut((p) => ({
+        ...p,
+        [name]: { text: text ?? "undefined", denied, line: event ? toLine(event) : null },
+      }));
+    } catch (e) {
+      setOut((p) => ({
+        ...p,
+        [name]: { text: `It threw: ${(e as Error).message}`, denied: true, line: null },
+      }));
+    } finally {
+      setBusy(null);
+    }
+  }, [g, mode, selected, input, raw, rawText]);
 
   return (
     <aside className="sim" aria-label="Tool simulator">
       <div className="sim-head">
-        <h2>Send a request by hand</h2>
+        <h2>Try a tool by hand</h2>
         <div className="sim-mode">
           <button aria-pressed={mode === "grenz"} onClick={() => setMode("grenz")}>
-            Grenz registry
+            Through Haven
           </button>
           <button
             aria-pressed={mode === "native"}
@@ -131,7 +270,7 @@ export function Simulator({
             disabled={!webmcp}
             title={webmcp ? "Call through document.modelContext" : "Requires native WebMCP"}
           >
-            getTools() / executeTool()
+            Through the browser
           </button>
         </div>
         <button className="x close" onClick={onClose} aria-label="Close the simulator">
@@ -142,7 +281,7 @@ export function Simulator({
       <div className="sim-note">
         {mode === "grenz"
           ? "Goes through exactly the same house rules the assistant's requests do. Works even with no assistant connected."
-          : "Goes out through document.modelContext, exactly as any script on this page would — and lands in the same house rules."}
+          : "Goes out through the browser's own getTools() and executeTool(), exactly as any script on this page would — and lands in the same house rules."}
       </div>
 
       {!selected ? (
@@ -160,50 +299,104 @@ export function Simulator({
                 aria-selected={tool.name === selected.name}
                 onClick={() => setPicked(tool.name)}
               >
-                {tool.name}
-                {tool.foreign && <span className="dot" title="Registered by a third-party script" />}
+                <b>{tool.title}</b>
+                {tool.foreign && <span className="dot" title="Added by a third-party script" />}
               </button>
             ))}
           </div>
 
           <div className="sim-detail">
             <div className="sim-tool-head">
+              <h3>{selected.title}</h3>
               <code>{selected.name}</code>
               {selected.foreign && <span className="badge-foreign">third-party</span>}
+              <button
+                className="sim-raw"
+                aria-pressed={raw}
+                onClick={() => setRaw((v) => !v)}
+                title="Send arguments no form could anticipate"
+              >
+                {raw ? "Use the fields" : "Edit as JSON"}
+              </button>
             </div>
             <p className="sim-tool-desc">{selected.description}</p>
 
             <div className="sim-io">
-              <label>
-                <span>Arguments</span>
-                <textarea
-                  value={seeded[selected.name]}
-                  spellCheck={false}
-                  onChange={(e) =>
-                    setArgs((p) => ({ ...p, [selected.name]: e.target.value }))
-                  }
-                  aria-label={`Arguments for ${selected.name}`}
-                />
-              </label>
+              <div className="sim-args">
+                <span>What to ask for</span>
+                {raw ? (
+                  <textarea
+                    className="sim-json"
+                    value={rawText}
+                    spellCheck={false}
+                    onChange={(e) =>
+                      setJson((p) => ({ ...p, [selected.name]: e.target.value }))
+                    }
+                    aria-label={`Arguments for ${selected.name} as JSON`}
+                  />
+                ) : fields.length === 0 ? (
+                  <p className="sim-noargs">This one takes no arguments. Just call it.</p>
+                ) : (
+                  <div className="sim-fields">
+                    {fields.map((f) => (
+                      <label key={f.key}>
+                        <span className="f-name">
+                          {f.label}
+                          {f.unit && <em>{f.unit}</em>}
+                          {/* The site's own bound, shown but never enforced —
+                              putting 45 in a 10–30 box is the demo. */}
+                          {f.bound && <i>{f.bound}</i>}
+                        </span>
+
+                        {f.options ? (
+                          <select value={current[f.key] ?? ""} onChange={(e) => set(f.key, e.target.value)}>
+                            {!f.required && <option value="">— leave out —</option>}
+                            {f.options.map((o) => (
+                              <option key={String(o)} value={String(o)}>
+                                {String(o)}
+                              </option>
+                            ))}
+                          </select>
+                        ) : f.type === "boolean" ? (
+                          <select value={current[f.key] ?? ""} onChange={(e) => set(f.key, e.target.value)}>
+                            <option value="">— leave out —</option>
+                            <option value="true">on</option>
+                            <option value="false">off</option>
+                          </select>
+                        ) : (
+                          <input
+                            type={f.type === "number" ? "number" : "text"}
+                            value={current[f.key] ?? ""}
+                            onChange={(e) => set(f.key, e.target.value)}
+                            placeholder={f.required ? "required" : "optional"}
+                          />
+                        )}
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
 
               <div className="sim-result">
-                <span>{out[selected.name]?.denied ? "Refused" : "Result"}</span>
-                {out[selected.name] ? (
-                  <pre className={out[selected.name]!.denied ? "denied" : "ok"}>
-                    {out[selected.name]!.text}
-                  </pre>
+                <span>What came back</span>
+                {!out[selected.name] ? (
+                  <pre className="idle">Nothing yet. Call it and watch the house.</pre>
                 ) : (
-                  <pre className="idle">Nothing yet. Call the tool and watch the house.</pre>
+                  <div className={`sim-said ${out[selected.name]!.denied ? "denied" : "ok"}`}>
+                    {out[selected.name]!.line && (
+                      <p>
+                        <b>{out[selected.name]!.line!.title}</b>
+                        {out[selected.name]!.line!.detail}
+                      </p>
+                    )}
+                    <pre>{out[selected.name]!.text}</pre>
+                  </div>
                 )}
               </div>
             </div>
 
-            <button
-              className="sim-run"
-              onClick={() => run(selected.name)}
-              disabled={busy === selected.name}
-            >
-              {busy === selected.name ? "Running…" : "Call tool"}
+            <button className="sim-run" onClick={run} disabled={busy === selected.name}>
+              {busy === selected.name ? "Asking…" : `Ask Haven to ${selected.title.toLowerCase()}`}
             </button>
           </div>
         </div>
