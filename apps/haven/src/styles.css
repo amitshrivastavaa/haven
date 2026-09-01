@@ -526,3 +526,22 @@ blockquote cite { display: block; margin-top: 12px; font-size: 12.5px; font-styl
 
 .pitch-foot { padding: 34px 0 20px; border-top: 1px solid var(--line); display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
 .pitch-foot p { margin: 0; font-size: 13.5px; color: var(--faint); line-height: 1.6; flex: 1; min-width: 260px; }
+
+/* --- narrow screens ------------------------------------------------------ */
+.head-id { flex: 1 1 auto; min-width: 0; }
+
+@media (max-width: 780px) {
+  .wrap { padding: 16px 14px 32px; }
+  .head { gap: 12px; }
+  .head .logo { width: 32px; height: 32px; font-size: 15px; }
+  .head h1 { font-size: 20px; }
+  .head .sub { font-size: 11.5px; }
+  .nav, .modes { order: 3; }
+  .guard { margin-left: 0; order: 4; }
+  .head > .mode { order: 5; }
+  .pitch-hero { padding: 12px 0 28px; }
+  .sheet-head, .sheet-body, .demo-head, .demo-body, .demo-foot { padding-left: 18px; padding-right: 18px; }
+  .rule-choice, .rule-what { min-width: 0; }
+  .who { padding: 13px 14px; }
+  .sim-body { grid-template-columns: 1fr; }
+}

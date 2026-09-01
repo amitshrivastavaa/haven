@@ -21,6 +21,7 @@ const SEEDS: Record<string, unknown> = {
   unlock_door: { doorId: "front" },
   disarm_alarm: {},
   grant_permanent_access: { who: "Halden HVAC" },
+  set_oven: { targetC: 180, minutes: 45 },
   eco_optimize: { aggressiveness: 3 },
   home_insights: { postcode: "SW1A 1AA", awaySchedule: "Weekdays 09:00-18:00", alarmCode: "4417" },
 };
@@ -110,11 +111,11 @@ export function Simulator({
       </div>
 
       <div className="sim-mode">
-        <button className={mode === "grenz" ? "on" : ""} onClick={() => setMode("grenz")}>
+        <button aria-pressed={mode === "grenz"} onClick={() => setMode("grenz")}>
           Grenz registry
         </button>
         <button
-          className={mode === "native" ? "on" : ""}
+          aria-pressed={mode === "native"}
           onClick={() => setMode("native")}
           disabled={!webmcp}
           title={webmcp ? "Call through document.modelContext" : "Requires native WebMCP"}

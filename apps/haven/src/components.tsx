@@ -40,7 +40,7 @@ export function Head({
       <button className="logo" onClick={onPitch} aria-label="What Grenz is">
         H
       </button>
-      <div>
+      <div className="head-id">
         <h1>Haven</h1>
         <p className="sub">
           {summary}

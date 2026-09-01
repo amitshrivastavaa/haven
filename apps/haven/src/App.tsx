@@ -37,10 +37,6 @@ export function App() {
   const webmcp = useMemo(hasWebMCP, []);
   const polyfilled = useMemo(() => Boolean((window as any).__grenzPolyfilled), []);
 
-  useEffect(() => {
-    if (!webmcp) setSimOpen(true);
-  }, [webmcp]);
-
   const patch = useCallback((p: Partial<House>) => setHouse((h) => ({ ...h, ...p })), []);
 
   // The agent's position on the plan comes from the timeline, so it appears
