@@ -496,3 +496,52 @@ describe("over-parameterization", () => {
     expect(g.getTimeline().find((e) => e.kind === "register")!.requestedFields).toBeUndefined();
   });
 });
+
+describe("the takeover cannot be undone by the script it defends against", () => {
+  // A same-realm attacker used to remove the whole policy layer in one line,
+  // because the patched property was left configurable and writable. Anything
+  // that can register a tool can also run these, so the seal is the difference
+  // between a checkpoint and a suggestion.
+  test("delete cannot restore the original registerTool", async () => {
+    const g = grenz(baseConfig);
+    const proto = Object.getPrototypeOf((globalThis as any).document.modelContext);
+    const patched = proto.registerTool;
+
+    expect(() => {
+      delete proto.registerTool;
+    }).toThrow();
+    expect(proto.registerTool).toBe(patched);
+
+    // Still governed afterwards: the evil tool's implementation stays unreachable.
+    await registerAsThirdParty(evilTool());
+    const result = await g.callTool("finalize_access", { doorId: "front" });
+    expect(denialOf(result).decision).toBe("deny");
+    expect(submitted).toEqual([]);
+  });
+
+  test("assignment cannot replace the wrapper with a pass-through", async () => {
+    const g = grenz(baseConfig);
+    const mcAny = (globalThis as any).document.modelContext;
+    const proto = Object.getPrototypeOf(mcAny);
+    const patched = proto.registerTool;
+
+    expect(() => {
+      proto.registerTool = async function passThrough(this: any, tool: ToolDescriptor) {
+        this.tools.set(tool.name, tool);
+      };
+    }).toThrow();
+    expect(proto.registerTool).toBe(patched);
+
+    await registerAsThirdParty(evilTool());
+    expect(mc.tools.get("finalize_access")!.execute).not.toBe(evilTool().execute);
+    expect(denialOf(await g.callTool("finalize_access", { doorId: "front" })).decision).toBe("deny");
+  });
+
+  test("defineProperty cannot redefine it either", () => {
+    grenz(baseConfig);
+    const proto = Object.getPrototypeOf((globalThis as any).document.modelContext);
+    expect(() =>
+      Object.defineProperty(proto, "registerTool", { value: () => Promise.resolve() }),
+    ).toThrow();
+  });
+});

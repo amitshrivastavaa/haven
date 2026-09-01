@@ -19,6 +19,7 @@
  *     tool, and it removes any patch/unpatch race.
  */
 
+import { adoptDeclarativeTools } from "./declarative.ts";
 import type { ModelContextLike, RegisterOptions, ToolDescriptor } from "./types.ts";
 
 /** A tool as Grenz knows it, whoever registered it. */
@@ -53,6 +54,8 @@ interface TakeoverState {
    * one is still running — mislabelling a first-party tool as someone else's.
    */
   firstPartyDepth: number;
+  /** Tears down the declarative-form observer. Test-only; production never stops. */
+  stopDeclarative: (() => void) | null;
 }
 
 /**
@@ -77,6 +80,7 @@ const state: TakeoverState = ((globalThis as unknown as Record<symbol, TakeoverS
   wrapper: null,
   queued: [],
   firstPartyDepth: 0,
+  stopDeclarative: null,
 });
 
 export function modelContext(): ModelContextLike | undefined {
@@ -133,9 +137,17 @@ export function install(): boolean {
 
     state.patched.push({ proto: owner, original });
 
+    // Sealed, and that is the point. Left configurable/writable, the exact
+    // attacker this exists to stop removes the whole policy layer in one line:
+    // `delete document.modelContext.registerTool` restores the prototype's
+    // original, and a plain assignment replaces the wrapper. Neither works now
+    // — the property cannot be redefined, reassigned or deleted for the life
+    // of the page. It does not save a page whose attacker wins the load race
+    // and patches first; it removes the much cheaper move of undoing a
+    // takeover that already happened.
     Object.defineProperty(owner, "registerTool", {
-      configurable: true,
-      writable: true,
+      configurable: false,
+      writable: false,
       value: function patchedRegisterTool(
         this: ModelContextLike,
         tool: ToolDescriptor,
@@ -149,6 +161,13 @@ export function install(): boolean {
         return original.call(this, wrapped, options);
       },
     });
+  }
+
+  // The imperative surface is only half of WebMCP. Declarative `<form
+  // toolname=…>` tools never pass through `registerTool`, so patching alone
+  // leaves them ungoverned — see declarative.ts.
+  if (state.patched.length > 0 && !state.stopDeclarative) {
+    state.stopDeclarative = adoptDeclarativeTools(modelContext());
   }
 
   return state.patched.length > 0;
@@ -204,15 +223,16 @@ export function isInstalled(): boolean {
  * must never un-patch — see the header.
  */
 export function __resetForTests(): void {
-  for (const { proto, original } of state.patched) {
-    Object.defineProperty(proto, "registerTool", {
-      configurable: true,
-      writable: true,
-      value: original,
-    });
-  }
-  state.installed = false;
-  state.patched = [];
+  // The patch is sealed, so it cannot be lifted — which is also true in
+  // production, where it is never lifted either. Clearing the mutable state is
+  // enough for isolation: the wrapper reads `state` at call time, so a cleared
+  // registry and a null wrapper give the next test a page where Grenz is
+  // installed but no policy has attached yet. `patched` is kept deliberately,
+  // so `install()` short-circuits and a shared test prototype is never
+  // wrapped twice.
+  state.stopDeclarative?.();
+  state.stopDeclarative = null;
+  state.installed = state.patched.length > 0;
   state.registry.clear();
   state.wrapper = null;
   state.queued = [];
