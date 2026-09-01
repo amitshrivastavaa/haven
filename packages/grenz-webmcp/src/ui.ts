@@ -25,8 +25,8 @@ const PALETTE = `
     --g-deny-bg: #fee2e2;
     --g-approve: #b45309;
     --g-approve-bg: #fef3c7;
-    --g-open: #6d28d9;
-    --g-open-bg: #ede9fe;
+    --g-open: #2563eb;
+    --g-open-bg: #eff4ff;
     --g-font: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     --g-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
   }
@@ -43,8 +43,8 @@ const PALETTE = `
       --g-deny-bg: #3d1a1a;
       --g-approve: #fbbf24;
       --g-approve-bg: #3a2c0d;
-      --g-open: #c4b5fd;
-      --g-open-bg: #2a1f45;
+      --g-open: #7da6ff;
+      --g-open-bg: #14203a;
     }
   }
 `;
