@@ -1,39 +1,54 @@
-/* Haven — night watch.
-   
-   One world, not two. This is the app you open at two in the morning because
-   you heard something, and a light theme would be a different product. So there
-   is no prefers-color-scheme swap here on purpose: the ground is dark, the only
-   warm light in it is the light that is actually on in the house, and the type
-   is the loudest thing on the screen.
-   
-   Three faces, three jobs, never mixed. Instrument Serif says the one sentence.
-   Archivo runs the interface. JetBrains Mono is reserved for text a machine
-   wrote — tool names, arguments, verdict codes — so you can always tell which
-   words are the house's and which are the assistant's. */
+/* Haven — demo app styles.
+   Two visual systems on purpose: the house is neutral and calm, and
+   anything belonging to Grenz is blue — the same blue the plan draws the agent
+   presence in, so the accent means something. A viewer should be able to tell
+   at a glance which pixels are the product and which are the safety layer. */
 
 :root {
-  --bg: #08090B;
-  --panel: #0E1014;
-  --sunk: #14171C;
-  --line: #1E2229;
-  --line-soft: #171A20;
-  --text: #F2F0EC;
-  --dim: #8A8F99;
-  --faint: #565C67;
-  --accent: #6E9BFF;
-  --accent-soft: #121A2B;
-  --accent-line: #253654;
-  --ok: #3DD68C;
-  --ok-soft: #0D2419;
-  --warn: #FFB627;
-  --warn-soft: #2A1E08;
-  --bad: #FF4D4D;
-  --bad-soft: #2A1113;
-  --radius: 14px;
-  --font: Archivo, ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --display: "Instrument Serif", Georgia, "Times New Roman", serif;
-  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-  --shadow: 0 1px 2px rgba(0, 0, 0, .5), 0 18px 40px -22px rgba(0, 0, 0, .9);
+  --bg: #fbfbfc;
+  --panel: #ffffff;
+  --sunk: #f4f4f6;
+  --line: #e5e5ea;
+  --line-soft: #eeeef1;
+  --text: #17171b;
+  --dim: #6f6f7a;
+  --faint: #9c9ca8;
+  --accent: #2563eb;
+  --accent-soft: #eff4ff;
+  --accent-line: #c7d9fe;
+  --ok: #15803d;
+  --ok-soft: #dcfce7;
+  --warn: #b45309;
+  --warn-soft: #fef3c7;
+  --bad: #b91c1c;
+  --bad-soft: #fee2e2;
+  --radius: 12px;
+  --font: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px -12px rgba(0, 0, 0, 0.12);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #101013;
+    --panel: #17171b;
+    --sunk: #1e1e23;
+    --line: #2c2c33;
+    --line-soft: #232329;
+    --text: #f4f4f6;
+    --dim: #a0a0ac;
+    --faint: #6e6e7a;
+    --accent: #7da6ff;
+    --accent-soft: #14203a;
+    --accent-line: #27406e;
+    --ok: #4ade80;
+    --ok-soft: #14351f;
+    --warn: #fbbf24;
+    --warn-soft: #3a2c0d;
+    --bad: #f87171;
+    --bad-soft: #3d1a1a;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -12px rgba(0, 0, 0, 0.6);
+  }
 }
 
 * { box-sizing: border-box; }
@@ -128,7 +143,8 @@ button, input, textarea { font-family: inherit; font-size: inherit; color: inher
   display: flex; align-items: center; gap: 10px; flex: none;
   padding: 9px 18px; font-size: 12.5px; border-bottom: 1px solid;
 }
-.banner code { font-family: var(--mono); font-size: 11.5px; padding: 1px 5px; border-radius: 4px; background: rgba(255,255,255,.1); }
+.banner code { font-family: var(--mono); font-size: 11.5px; padding: 1px 5px; border-radius: 4px; background: rgba(0,0,0,.06); }
+@media (prefers-color-scheme: dark) { .banner code { background: rgba(255,255,255,.1); } }
 .banner.info { background: var(--warn-soft); color: var(--warn); border-color: color-mix(in srgb, var(--warn) 30%, transparent); }
 .banner.danger { background: var(--bad-soft); color: var(--bad); border-color: color-mix(in srgb, var(--bad) 35%, transparent); font-weight: 560; }
 .banner .banner-cta { margin-left: auto; }
@@ -315,96 +331,68 @@ button, input, textarea { font-family: inherit; font-size: inherit; color: inher
    silently repaints something.
    ========================================================================== */
 
-/* --- the floor plan ------------------------------------------------------
-   The house at night, seen from above. A lit room is genuinely the only warm
-   light in the frame, which is the whole reason this app is dark: the glow
-   means something because nothing else glows. */
 .fp-box {
-  --p-ground: #101419;
-  --p-ground-2: #06080B;
-  --p-floor: #12161C;
-  --p-floor-lit: #2E2415;
-  --p-wall: #2B323C;
-  --p-furn: #171C23;
-  --p-furn-line: #232A34;
-  --p-furn-lit: #2C2519;
-  --p-furn-lit-line: #3C3320;
-  --p-label: #78828F;
-  --p-sub: #4E5763;
-  --p-warm: #FFC451;
-  --p-pool: #FFB627;
-  --p-core: #FFE0A3;
-  --p-pool-o: .38;
-  --p-core-o: .32;
-  --p-chip: #161B22;
-  --p-chip-line: #262E39;
-  --p-chip-t: #EDEAE4;
-  --p-chip-s: #6E7783;
-  --p-step: #1D242D;
-  --p-step-line: #2E3742;
-  --p-step-mark: #B9C3D0;
-  --p-ok: #3DD68C;
-  --p-bad: #FF4D4D;
-  --p-agent: #6E9BFF;
-  --p-agent-dot: #CFE0FF;
-  --p-swing: #262E39;
-
-  border-radius: 18px; overflow: hidden; margin-bottom: 20px;
-  background: radial-gradient(120% 100% at 50% 0%, var(--p-ground) 0%, var(--p-ground-2) 100%);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .04), inset 0 0 80px rgba(0, 0, 0, .6);
+  border-radius: 18px;
+  overflow: hidden;
+  margin-bottom: 16px;
+  background: radial-gradient(120% 100% at 50% 0%, #1B2430 0%, #121821 55%, #0C1118 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), inset 0 0 60px rgba(0, 0, 0, 0.5);
 }
-
 .fp-svg { display: block; width: 100%; height: auto; }
 
-.fp-floor { fill: var(--p-floor); transition: fill .6s; }
-.fp-room.lit .fp-floor { fill: var(--p-floor-lit); }
-.fp-wall { fill: var(--p-wall); }
-.fp-furn { fill: var(--p-furn); stroke: var(--p-furn-line); stroke-width: 1.5; stroke-linejoin: round; }
-.fp-room.lit .fp-furn { fill: var(--p-furn-lit); stroke: var(--p-furn-lit-line); }
-.fp-swing { fill: none; stroke: var(--p-swing); stroke-width: 1.5; stroke-dasharray: 4 5; }
+.fp-floor { fill: #171E28; transition: fill .6s; }
+.fp-room.lit .fp-floor { fill: #2A2318; }
+.fp-wall { fill: #39434F; }
+.fp-furn { fill: #212B36; stroke: #2E3A47; stroke-width: 1.5; stroke-linejoin: round; }
+.fp-room.lit .fp-furn { fill: #2C2A25; stroke: #3E3931; }
+.fp-swing { fill: none; stroke: #2E3A47; stroke-width: 1.5; stroke-dasharray: 4 5; }
 
 .fp-label {
-  fill: var(--p-label); font-size: 13px; font-weight: 700;
-  letter-spacing: .04em; transition: fill .5s;
+  fill: #8494A6; font-size: 13px; font-weight: 700;
+  letter-spacing: 0.04em; transition: fill .5s;
 }
 .fp-label.small { font-size: 11px; }
-.fp-sub { fill: var(--p-sub); font-size: 11.5px; font-weight: 500; transition: fill .5s; }
-.fp-room.lit .fp-label, .fp-room.lit .fp-sub { fill: var(--p-warm); }
+.fp-sub { fill: #5C6B7C; font-size: 11.5px; font-weight: 500; transition: fill .5s; }
+.fp-room.lit .fp-label, .fp-room.lit .fp-sub { fill: #FFC451; }
 .fp-room { cursor: pointer; }
-.fp-room:hover .fp-floor { filter: brightness(1.35); }
+.fp-room:hover .fp-floor { filter: brightness(1.14); }
 
-.fp-pool { fill: var(--p-pool); opacity: 0; transition: opacity .6s; }
-.fp-core { fill: var(--p-core); opacity: 0; transition: opacity .6s; }
-.fp-room.lit .fp-pool { opacity: var(--p-pool-o); }
-.fp-room.lit .fp-core { opacity: var(--p-core-o); }
+/* Two layers of bloom, clipped to the room, so light pools instead of smearing. */
+.fp-pool { fill: #FFC451; opacity: 0; transition: opacity .6s; }
+.fp-core { fill: #FFE0A3; opacity: 0; transition: opacity .6s; }
+.fp-room.lit .fp-pool { opacity: .34; }
+.fp-room.lit .fp-core { opacity: .30; }
 
-.fp-chip { fill: var(--p-chip); stroke: var(--p-chip-line); stroke-width: 1; }
-.fp-chip-t { fill: var(--p-chip-t); font-size: 13px; font-weight: 700; }
-.fp-chip-s { fill: var(--p-chip-s); font-size: 10.5px; font-weight: 500; }
-.fp-chip-s.bad { fill: var(--p-bad); font-weight: 700; }
+.fp-chip { fill: #1E2833; stroke: #333F4C; stroke-width: 1; }
+.fp-chip-t { fill: #E8EEF6; font-size: 13px; font-weight: 700; }
+.fp-chip-s { fill: #7C8B9C; font-size: 10.5px; font-weight: 500; }
+.fp-chip-s.bad { fill: #FF6B6B; font-weight: 700; }
 
+/* The bolt is a mechanism, not a label. */
 .fp-door { cursor: pointer; }
-.fp-bolt { fill: var(--p-ok); transition: transform .5s cubic-bezier(.3,1.3,.5,1), fill .4s; }
-.fp-door.open .fp-bolt { transform: translateX(-42px); fill: var(--p-bad); }
-.fp-leaf { fill: var(--p-wall); transition: fill .4s; }
-.fp-door.open .fp-leaf { fill: var(--p-bad); }
-.fp-doorstate { fill: var(--p-ok); font-size: 12.5px; font-weight: 700; transition: fill .4s; }
-.fp-doorstate.open { fill: var(--p-bad); }
+.fp-bolt { fill: #3DD68C; transition: transform .5s cubic-bezier(.3,1.3,.5,1), fill .4s; }
+.fp-door.open .fp-bolt { transform: translateX(-42px); fill: #FF6B6B; }
+.fp-leaf { fill: #4A5665; transition: fill .4s; }
+.fp-door.open .fp-leaf { fill: #FF6B6B; }
+.fp-doorstate { fill: #3DD68C; font-size: 12.5px; font-weight: 700; transition: fill .4s; }
+.fp-doorstate.open { fill: #FF6B6B; }
 
+/* The agent, made visible. */
 .fp-agent { transition: transform 1.05s cubic-bezier(.45,.05,.25,1); opacity: 0; }
 .fp-agent.here { opacity: 1; }
-.fp-halo { fill: var(--p-agent); opacity: .20; }
-.fp-halo2 { fill: var(--p-agent); opacity: .28; }
-.fp-core-dot { fill: var(--p-agent-dot); }
-.fp-tag { fill: var(--p-agent-dot); font-size: 11px; font-weight: 700; letter-spacing: .03em; }
+.fp-halo { fill: #6E9BFF; opacity: .20; }
+.fp-halo2 { fill: #6E9BFF; opacity: .28; }
+.fp-core-dot { fill: #CFE0FF; }
+.fp-tag { fill: #9FBCFF; font-size: 11px; font-weight: 700; letter-spacing: .03em; }
 .fp-agent.here .fp-halo { animation: fp-breathe 2.4s ease-in-out infinite; }
 @keyframes fp-breathe {
   0%, 100% { transform: scale(1); opacity: .20; }
   50% { transform: scale(1.55); opacity: .06; }
 }
-.fp-agent.blocked .fp-core-dot { fill: var(--p-bad); }
-.fp-agent.blocked .fp-halo, .fp-agent.blocked .fp-halo2 { fill: var(--p-bad); }
-.fp-agent.blocked .fp-tag { fill: var(--p-bad); }
+.fp-agent.blocked .fp-core-dot { fill: #FFD5D5; }
+.fp-agent.blocked .fp-halo, .fp-agent.blocked .fp-halo2 { fill: #FF6B6B; }
+.fp-agent.blocked .fp-tag { fill: #FF9C9C; }
+
 @media (prefers-reduced-motion: reduce) {
   .fp-agent, .fp-bolt, .fp-pool, .fp-core, .fp-floor { transition: none; }
   .fp-agent.here .fp-halo { animation: none; }
@@ -483,13 +471,13 @@ button, input, textarea { font-family: inherit; font-size: inherit; color: inher
 .rules-foot { color: var(--faint); font-size: 12px; line-height: 1.65; max-width: 62ch; margin-top: 4px; }
 
 /* --- plan controls ------------------------------------------------------- */
-.fp-step circle { fill: var(--p-step); stroke: var(--p-step-line); stroke-width: 1; transition: fill .15s; }
-.fp-step path { stroke: var(--p-step-mark); stroke-width: 2; stroke-linecap: round; fill: none; }
+.fp-step circle { fill: #263140; stroke: #3A4756; stroke-width: 1; }
+.fp-step path { stroke: #C6D4E4; stroke-width: 2; stroke-linecap: round; fill: none; }
 .fp-step, .fp-tap { cursor: pointer; }
-.fp-step:hover circle { fill: var(--p-floor-lit); stroke: var(--p-warm); }
-.fp-tap:hover .fp-chip { fill: var(--p-step); }
+.fp-step:hover circle { fill: #33415380; stroke: #55677D; }
+.fp-tap:hover .fp-chip { fill: #263140; }
 .fp-room:focus-visible, .fp-step:focus-visible, .fp-tap:focus-visible, .fp-door:focus-visible {
-  outline: 2px solid var(--p-agent); outline-offset: 2px; border-radius: 6px;
+  outline: 2px solid #6E9BFF; outline-offset: 2px; border-radius: 6px;
 }
 .col.rail.hidden { display: none; }
 .col.rail:not(.hidden) { flex: 1; border-left: 0; }
@@ -500,134 +488,6 @@ button, input, textarea { font-family: inherit; font-size: inherit; color: inher
 .house .col-scroll > * { max-width: 880px; margin-left: auto; margin-right: auto; }
 .fp-box { max-width: 880px; }
 
-/* ==========================================================================
-   Night watch — the display voice.
-
-   The hero is the whole design decision. One sentence, set large enough that
-   it is the first and sometimes the only thing read, in a serif because a
-   serif at 2am reads as a person telling you something rather than a system
-   raising an alert. Its tone colours the sentence and nothing else, so the
-   page never turns red at you.
-   ========================================================================== */
-.hero { padding: 46px 0 34px; max-width: 880px; margin: 0 auto; }
-.hero-line {
-  font-family: var(--display); font-weight: 400;
-  font-size: clamp(38px, 6.2vw, 76px); line-height: 1.02;
-  letter-spacing: -.015em; text-wrap: balance;
-  margin: 0 0 18px; color: var(--text);
-  transition: color .5s;
-}
-.hero.watch .hero-line { color: var(--warn); }
-.hero.alarm .hero-line { color: var(--bad); }
-.hero-note {
-  margin: 0; max-width: 54ch; color: var(--dim);
-  font-size: 15px; line-height: 1.6;
-}
-.hero-acts { display: flex; gap: 10px; margin-top: 26px; flex-wrap: wrap; }
-.act {
-  appearance: none; font: inherit; font-size: 13px; font-weight: 600;
-  letter-spacing: .02em; padding: 11px 22px; border-radius: 999px;
-  cursor: pointer; border: 1px solid var(--line); background: transparent;
-  color: var(--dim); transition: color .15s, border-color .15s, background .15s;
-}
-.act:hover { color: var(--text); border-color: var(--faint); }
-.act-strong {
-  background: var(--text); color: var(--bg); border-color: var(--text);
-}
-.act-strong:hover { background: #fff; color: var(--bg); border-color: #fff; }
-
-/* Small caps labels do the work that pills and chips were doing. */
-.header { border-bottom: 1px solid var(--line-soft); background: transparent; height: 62px; }
-.brand-mark {
-  background: transparent; border: 1px solid var(--line); color: var(--text);
-  font-family: var(--display); font-weight: 400; font-size: 16px; border-radius: 10px;
-}
-.brand-name { font-family: var(--display); font-weight: 400; font-size: 19px; letter-spacing: 0; }
-.brand-sub {
-  font-size: 9.5px; letter-spacing: .16em; text-transform: uppercase;
-  color: var(--faint); margin-top: 1px; font-weight: 500;
-}
-.tab {
-  font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; font-weight: 600;
-  border-radius: 0; padding: 6px 0; margin-right: 26px; background: none;
-  border-bottom: 1px solid transparent;
-}
-.tabs { gap: 0; margin-left: 40px; }
-.tab:hover { background: none; color: var(--text); }
-.tab.on { background: none; color: var(--text); border-bottom-color: var(--text); }
-.tab-count {
-  background: var(--warn); color: var(--bg); min-width: 15px; height: 15px; font-size: 9px;
-}
-.pill {
-  border: 0; background: none; padding: 0 0 0 2px; font-size: 10px; letter-spacing: .14em;
-  text-transform: uppercase; font-weight: 600; margin-left: 22px;
-}
-.pill.live { background: none; color: var(--dim); border: 0; }
-.pill.live .dot { background: var(--ok); }
-.pill.absent { background: none; color: var(--warn); border: 0; }
-.pill.state-shield { background: none; border: 0; }
-.pill.state-shield.safe { background: none; color: var(--dim); }
-.pill.state-shield.unsafe { background: none; color: var(--bad); }
-
-/* The exhibit, kept quiet until you look for it. */
-.demobar { background: transparent; border-bottom: 1px solid var(--line-soft); padding: 10px 18px; }
-.demobar-tag { letter-spacing: .16em; font-size: 9.5px; color: var(--faint); }
-.demo-btn {
-  border: 0; border-bottom: 1px solid var(--line); border-radius: 0; padding: 3px 0;
-  margin-right: 20px; font-size: 11px; letter-spacing: .04em;
-}
-.demo-btn:hover { border-color: var(--faint); background: none; }
-.demo-btn.on { background: none; border-style: solid; border-width: 0 0 1px; border-color: var(--accent); color: var(--accent); }
-.demo-btn.armed { background: none; border-style: solid; border-width: 0 0 1px; border-color: var(--bad); color: var(--bad); }
-
-/* Scenes: text, not buttons pretending to be pills. */
-.scene-row { gap: 26px; margin-bottom: 22px; }
-.scene {
-  background: none; border: 0; border-bottom: 1px solid transparent; border-radius: 0;
-  padding: 4px 0; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; font-weight: 600;
-}
-.scene:hover { border-color: var(--faint); }
-.scene.on { background: none; border-color: var(--warm, var(--text)); color: var(--text); border-bottom-color: var(--text); }
-
-/* Everything a machine wrote is monospace, everywhere, without exception. */
-.lastact code, .rule-sub code, .feed-foot code, .banner code { font-family: var(--mono); }
-.lastact {
-  border: 0; border-top: 1px solid var(--line-soft); border-bottom: 1px solid var(--line-soft);
-  border-radius: 0; background: none; padding: 12px 2px; margin-bottom: 26px;
-}
-.lastact.deny { background: none; border-color: var(--line-soft); }
-.lastact-word { letter-spacing: .14em; }
-
-.rules-intro h1 {
-  font-family: var(--display); font-weight: 400; font-size: clamp(32px, 4.4vw, 52px);
-  letter-spacing: -.01em; margin: 34px 0 14px;
-}
-.rules-intro p { font-size: 15px; }
-.rules-group h2 { letter-spacing: .16em; font-size: 9.5px; }
-.rule { background: none; border: 0; border-bottom: 1px solid var(--line-soft); border-radius: 0; padding: 16px 2px; margin-bottom: 0; }
-.rule-title { font-size: 15px; font-weight: 500; }
-.rule-choice { background: none; padding: 0; gap: 22px; }
-.choice {
-  padding: 3px 0; border: 0; border-bottom: 1px solid transparent; border-radius: 0;
-  font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; font-weight: 600;
-}
-.choice.on { background: none; box-shadow: none; border-bottom-color: currentColor; }
-.rules-foot { margin-top: 30px; }
-
-.access-line { font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--faint); }
-.card { background: none; border: 0; border-top: 1px solid var(--line-soft); border-radius: 0; padding: 22px 2px 0; }
-.card-head h2 { font-family: var(--display); font-weight: 400; font-size: 20px; letter-spacing: 0; }
-.card-head .state { letter-spacing: .14em; font-size: 9.5px; text-transform: uppercase; }
-.feed-row p { font-size: 14px; line-height: 1.65; }
-.scene-row { align-items: baseline; }
-.scene-eyebrow {
-  font-size: 9.5px; letter-spacing: .16em; text-transform: uppercase;
-  color: var(--faint); margin-right: 4px; font-weight: 500;
-}
-.hero { padding: 36px 0 30px; }
-
-/* Activity reads in the same 880px column as Home and House rules, so the
-   three screens sit on one measure instead of each finding its own. */
-.col.rail { background: transparent; }
+/* Activity reads in the same column as Home and House rules, so the three
+   screens sit on one measure instead of each finding its own. */
 .rail-timeline, .rail-foot { max-width: 880px; width: 100%; margin: 0 auto; }
-.rail-foot { border-top: 1px solid var(--line-soft); padding: 14px 2px 20px; }

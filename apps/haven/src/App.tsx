@@ -5,7 +5,6 @@ import { doorbellEvents, initialHouse, SCENES } from "./house";
 import { Simulator } from "./Simulator";
 import { Banner, DemoBar, DoorbellFeed, Header, LastAction, SceneRow, type Tab } from "./components";
 import { Rules } from "./Rules";
-import { Hero, momentFor, type LastEvent } from "./Hero";
 import { FloorPlan, spotFor, type Spot } from "./FloorPlan";
 import { loadEcoSaver, loadHomeInsights, unloadEcoSaver, unloadHomeInsights } from "./widgets";
 import type { House, LightId, SceneId } from "./types";
@@ -23,7 +22,7 @@ export function App() {
   const [simOpen, setSimOpen] = useState(() => new URLSearchParams(location.search).has("sim"));
   const [agent, setAgent] = useState<{ at: Spot; blocked: boolean } | null>(null);
   const [tab, setTab] = useState<Tab>("home");
-  const [last, setLast] = useState<LastEvent | null>(null);
+  const [last, setLast] = useState<{ tool: string; decision: string; message: string } | null>(null);
   const [unread, setUnread] = useState(0);
 
   const webmcp = useMemo(hasWebMCP, []);
@@ -50,7 +49,7 @@ export function App() {
       const last = events[events.length - 1];
       if (!last || last.kind === "register") return;
       setAgent({ at: spotFor(last.tool, last.input), blocked: last.decision === "deny" });
-      setLast({ tool: last.tool, decision: last.decision, message: last.message, reason: last.reason });
+      setLast({ tool: last.tool, decision: last.decision, message: last.message });
       setUnread((n) => n + 1);
       clearTimeout(timer);
       timer = setTimeout(() => setAgent(null), 2600);
@@ -314,31 +313,13 @@ export function App() {
         {tab === "home" && (
         <div className="col house">
           <div className="col-scroll">
-            {(() => {
-              const moment = momentFor(house, last, protection);
-              return (
-                <>
-            <Hero
-              moment={moment}
-              doorLocked={house.doorLocked}
-              onLock={() => patch({ doorLocked: true })}
-              onSeeWhy={() => {
+            <LastAction
+              event={last}
+              onOpen={() => {
                 setTab("activity");
                 setUnread(0);
               }}
             />
-            {moment.tone === "calm" && (
-              <LastAction
-                event={last}
-                onOpen={() => {
-                  setTab("activity");
-                  setUnread(0);
-                }}
-              />
-            )}
-                </>
-              );
-            })()}
             <SceneRow
               scene={house.scene}
               onScene={(s) => {

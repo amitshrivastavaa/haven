@@ -191,7 +191,6 @@ export function Banner({ kind, children }: { kind: "info" | "danger"; children: 
 export function SceneRow({ scene, onScene }: { scene: SceneId; onScene: (s: SceneId) => void }) {
   return (
     <div className="scene-row">
-      <span className="scene-eyebrow">Set the house to</span>
       {Object.values(SCENES).map((s) => (
         <button
           key={s.id}
