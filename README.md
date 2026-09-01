@@ -168,6 +168,75 @@ Grenz resolves instead, with something the agent can read and act on:
 
 Allowed and approved calls resolve with the tool's own result, untouched.
 
+## What makes the approval human
+
+Step 5 raises a card, and a card is worth exactly as much as the cheapest thing
+that can satisfy it. So: what can click it?
+
+**Nothing that lives in the page.** The card accepts only events the browser
+stamped `isTrusted`, which page script cannot forge. Measured against
+`element.click()`, a synthetic `MouseEvent`, a synthetic `PointerEvent` and a
+scripted `Enter` — all four are refused and recorded as `approval_synthetic`,
+never merely ignored, because ignoring leaves the card up to be attacked again.
+That covers every attacker sharing the realm: the injected tool, the partner
+widget, the extension content script. **Deny** stays permissive in both
+directions — it works forged or not, because refusing is never the unsafe
+direction and a card nobody can dismiss is its own denial of service.
+
+**An agent driving the real mouse produces a genuinely trusted event.** For the
+calls where that distinction matters, a policy adds `presence: "required"` or
+`"preferred"` and the card runs a WebAuthn ceremony before it settles. The
+platform draws that prompt, not the DOM: there is no element to click and no
+coordinate to hit, and satisfying it takes a fingerprint, a face or a security
+key.
+
+**A page cannot verify its own proof.** A verifier in the same realm as the
+attacker returns whatever the attacker wants, and a challenge the page picked is
+a number the attacker picked. So `GrenzConfig.presence` takes a `Verifier` — the
+site's own server — and the assertion goes there. Haven's is a Netlify function
+at `/api/presence` which checks that it issued the challenge and that it has not
+expired, that the signature verifies against the key enrolled for that
+credential, that the authenticator set both the user-present and user-verified
+flags, and that the origin and RP id in the signed client data are this site.
+
+With no verifier configured the ceremony still runs — page script cannot make
+`navigator.credentials.get()` resolve, so it still stops everything sharing the
+realm — but the timeline says `presence_unverified`, *"a passkey answered, but
+nothing off this page checked it"*, rather than counting it as proof. A missing
+endpoint means a weaker check honestly labelled, never a refusal: a house that
+will not open its own front door because a deploy is incomplete is worse than
+one that is candid about which check it made.
+
+Two things follow from taking that seriously, and both were bugs first:
+
+- **The skip is the attack, not the ceremony.** `navigator.credentials.get` and
+  `.create` are captured at module load so a later script cannot swap them — but
+  so is `isUserVerifyingPlatformAuthenticatorAvailable`, because that one is not
+  how the ceremony is *satisfied*, it is how the ceremony is *skipped*. Read
+  live, page script returning `false` from it downgrades a `preferred` policy to
+  a plain click, and the trail then reads `presence_unavailable`, which looks
+  like a tired laptop rather than an attack.
+- **A session grant cannot outlive the proof.** "Approve for the rest of the
+  session" returns before the card is raised, so no later call runs a ceremony.
+  A presence policy says a person must be proved *for this call*; a grant says
+  later calls have no person at all. The pipeline refuses to store that grant,
+  and the card stops offering a checkbox that would quietly do nothing.
+
+**Where this stops.** Enrolment is anchored to a first-party `HttpOnly` cookie:
+one passkey per browser, trust-on-first-use within it, and a second key refused
+rather than allowed to replace the first. That blocks a key swap and establishes
+that the same browser which enrolled is the one asking — it cannot establish
+*which human*. Anchoring enrolment to a signed-in account is the one link a demo
+without accounts cannot supply, and it is the only part of the chain that is
+staged rather than real.
+
+The rules themselves are **read-only at runtime**, for the same reason. They are
+the authorization boundary, so a control that edits them is a second and weaker
+way to authorize — one needing only a click, which is exactly what the strong
+path exists to stop. An agent that cannot unlock the door must not be able to
+delete the rule that stops it. Policy comes from the site's source, reviewed and
+deployed.
+
 ## The part that makes it a policy layer
 
 A wrapper that only sees its own registrations is not a policy layer. **Grenz
@@ -285,6 +354,32 @@ the simulator, which drives the same governed tools from Grenz's own registry.
 Adding `?polyfill=1` activates a small, clearly-labelled WebMCP stand-in so the
 full flow — including the approval card — can be exercised in any browser.
 
+### Deploying it
+
+`netlify.toml` carries the build, the publish directory and the functions
+directory, so the only site setting that matters is **`PRESENCE_SECRET`**, which
+signs the challenge tokens. Without it the function falls back to a default that
+is in this repository, which is fine for a demo and not for anything else.
+Netlify Blobs needs no configuration.
+
+Two things are worth knowing before the first deploy, because neither shows up
+in local development:
+
+- **`bun dev` serves no functions**, so there is no verifier, so enrolment never
+  reaches a server at all. Every presence-gated approval locally is recorded as
+  `presence_unverified`. That is correct behaviour, not a fault — but it means
+  the server path is untested until it is live.
+- **The RP id is the hostname.** The function checks the authenticator's
+  `rpIdHash` against `SHA-256(hostname)`, so credentials enrolled on
+  `something.netlify.app` stop verifying if a custom domain is added later.
+  Visitors simply re-enrol, but pick the final hostname before recording
+  anything.
+
+The first thing to check on a live deploy is that a **second** browser can
+approve: open the front door in a normal window, then again in a private one.
+Enrolment is per browser, and a shared enrolment would refuse everyone after the
+first person.
+
 ### The takeover spike
 
 The one thing unit tests cannot answer is whether prototype patching actually
@@ -303,13 +398,19 @@ all green in Chrome 151.
 
 ### Verified against native Chrome
 
-The full 38-assertion end-to-end suite passes against **Chrome's own WebMCP
-implementation** — no polyfill — in Chrome 151.0.7922.174 launched with
-`--enable-blink-features=WebMCPTesting`, served over localhost so the secure-context
-requirement is met. The prototype takeover intercepts registrations made directly
-against the native `ModelContext`, which is the claim this project rests on.
+`bun test` is the reproducible number: the policy engine, the pipeline, the
+takeover, and the presence endpoint with its blob store stubbed. Everything in
+it runs from a clean checkout.
 
-The same suite also passes in polyfill mode, so both paths are covered.
+Beyond that, the pipeline has been driven end to end against **Chrome's own
+WebMCP implementation** — no polyfill — in Chrome 151.0.7922.174 launched with
+`--enable-blink-features=WebMCPTesting`, served over localhost so the
+secure-context requirement is met. The prototype takeover intercepts
+registrations made directly against the native `ModelContext`, which is the
+claim this project rests on, and the same run passes in polyfill mode so both
+paths are covered. That harness drives the browser over CDP and is a development
+rig rather than part of this repository, so it is recorded here as a check that
+was made, not as a number anyone else can re-run.
 
 One incompatibility surfaced only under native, and is worth recording because a
 laxer polyfill is how it stayed hidden: **`executeTool(tool, args)` takes its
@@ -337,9 +438,12 @@ contract rather than being more permissive than the API it stands in for.
 
 ## Not built, deliberately
 
-No backend or hosted component, no credential vault, no editable arguments in
-the approval card, no `exposedTo` / cross-origin tool sharing, no service-worker
-or declarative `<form>` tools. Foreign registrations are wrapped and denied
+No accounts, no credential vault, no editable arguments in the approval card, no
+`exposedTo` / cross-origin tool sharing, no service-worker or declarative
+`<form>` tools. The one hosted component is `/api/presence`, which exists
+because a page cannot verify its own proof; everything else runs in the page,
+and the demo degrades to unverified approvals rather than refusing them when it
+is absent. Foreign registrations are wrapped and denied
 rather than blocked outright — hiding a poisoned tool from the agent entirely is
 future work, and would trade an auditable denial for an invisible one.
 
