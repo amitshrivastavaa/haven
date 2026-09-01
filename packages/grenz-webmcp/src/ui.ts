@@ -10,6 +10,7 @@
  */
 
 import type { ApprovalOutcome, ApprovalRequest, GrenzInstance } from "./grenz.ts";
+import { provePresence } from "./presence.ts";
 import type { ReasonCode, TimelineEvent } from "./types.ts";
 
 const PALETTE = `
@@ -258,7 +259,9 @@ function showCard(request: ApprovalRequest): Promise<ApprovalOutcome> {
 
     const actions = el("div", "actions");
     const denyBtn = el("button", "deny", "Deny");
-    const approveBtn = el("button", "approve", "Approve");
+    // Named before it runs: nobody should meet a fingerprint prompt they did
+    // not ask for.
+    const approveBtn = el("button", "approve", request.presence ? "Approve with a passkey" : "Approve");
     actions.append(denyBtn, approveBtn);
     body.append(actions);
 
@@ -303,7 +306,7 @@ function showCard(request: ApprovalRequest): Promise<ApprovalOutcome> {
         e.preventDefault();
         // Enter is an approval, so it is held to the same standard as a click.
         if (!e.isTrusted) return settle({ granted: false, synthetic: true });
-        settle({ granted: true, remember: checkbox.checked });
+        void approve();
       } else if (e.key === "Tab") {
         // Minimal focus trap: keep Tab inside the card.
         const focusables = [denyBtn, approveBtn, checkbox];
@@ -336,11 +339,32 @@ function showCard(request: ApprovalRequest): Promise<ApprovalOutcome> {
       settle({ granted: false, synthetic: true });
     };
 
+    /**
+     * The trusted click gets us into the ceremony; the ceremony finishes the
+     * job. The platform draws it, so there is nothing here for an agent to
+     * click — and the button says what it is asking for before it asks.
+     */
+    const approve = async () => {
+      if (!request.presence) {
+        return settle({ granted: true, remember: checkbox.checked });
+      }
+      approveBtn.disabled = true;
+      denyBtn.disabled = true;
+      approveBtn.textContent = "Waiting for you…";
+      const proof = await provePresence("Haven");
+      if (proof.ok) {
+        return settle({ granted: true, remember: checkbox.checked, presence: "proved" });
+      }
+      if (proof.reason === "unavailable" && request.presence === "preferred") {
+        // Falling back is a real weakening, so it is granted AND reported —
+        // the trail says the proof was not available, never nothing.
+        return settle({ granted: true, remember: checkbox.checked, presence: "unavailable" });
+      }
+      settle({ granted: false, presence: proof.reason === "unavailable" ? "unavailable" : "refused" });
+    };
+
     denyBtn.addEventListener("click", () => settle({ granted: false }));
-    approveBtn.addEventListener(
-      "click",
-      humanOnly(() => settle({ granted: true, remember: checkbox.checked })),
-    );
+    approveBtn.addEventListener("click", humanOnly(() => void approve()));
     // Resolved elsewhere: the timeout fired, or the agent hung up.
     request.close.addEventListener("abort", () => settle({ granted: false }), { once: true });
 
@@ -429,6 +453,9 @@ const REASON: Record<ReasonCode, string> = {
   policy_loosened: "a house rule was relaxed",
   policy_tightened: "a house rule was tightened",
   approval_synthetic: "something clicked Approve that was not you",
+  approval_present: "you proved it was you",
+  presence_refused: "the passkey check was not satisfied",
+  presence_unavailable: "this device cannot prove a person is here",
   explicit_allow: "a house rule allows this",
   explicit_deny: "a house rule says never",
   approval_required: "a house rule says ask me first",

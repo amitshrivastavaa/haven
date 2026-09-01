@@ -42,6 +42,12 @@ export type ReasonCode =
    * an answer of no.
    */
   | "approval_synthetic"
+  /** A person proved they were there. */
+  | "approval_present"
+  /** The ceremony ran and was not satisfied. */
+  | "presence_refused"
+  /** The site required presence and this device cannot prove it. */
+  | "presence_unavailable"
   | "unprotected"
   /** A rule was relaxed: the assistant may now do more than it could. */
   | "policy_loosened"
@@ -94,6 +100,19 @@ export interface ToolPolicy {
    * as they arrived.
    */
   readonly describe?: (input: Record<string, unknown>) => string | undefined;
+  /**
+   * Require proof that a person is present, not just that the click was real.
+   *
+   * `isTrusted` already stops anything in the page from approving. This is the
+   * next rung: a WebAuthn ceremony the platform draws rather than the DOM, so
+   * there is no element to click and satisfying it takes a fingerprint, a face
+   * or a key. An agent driving the mouse has none of those.
+   *
+   * "required" refuses the call when the device has no authenticator.
+   * "preferred" falls back to the trusted click — and records that it did, so
+   * the weaker check is never silent.
+   */
+  readonly presence?: PresenceMode;
   readonly constraints?: Readonly<Record<string, Constraint>>;
   readonly rateLimit?: RateLimit;
 }
@@ -119,6 +138,8 @@ export interface GrenzConfig {
  * highest-value move an attacker can make — it buys every future call at once
  * — so it cannot be the one thing the trail does not show.
  */
+import type { PresenceMode } from "./presence.ts";
+
 export type EventKind = "register" | "call" | "grant" | "policy";
 
 export interface TimelineEvent {

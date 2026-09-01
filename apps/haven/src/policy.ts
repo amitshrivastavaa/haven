@@ -63,6 +63,11 @@ export const rules: Record<string, Rule> = {
 
   unlock_door: {
     action: "approve",
+    // A real click proves nothing came from a script. It does not prove the
+    // hand on the mouse is yours — so the front door asks for a passkey.
+    // "preferred", not "required": a device with no authenticator still gets
+    // in, and the trail says the weaker check was used.
+    presence: "preferred",
     effect: "Anyone outside can walk in until it is locked again.",
     // Which door is the whole decision, so it is in the sentence rather than
     // in a key called doorId that means nothing to the person reading it.
@@ -72,6 +77,7 @@ export const rules: Record<string, Rule> = {
 
   disarm_alarm: {
     action: "approve",
+    presence: "preferred",
     effect: "No one will be notified if the house is entered.",
     describe: () => "Turn off the burglar alarm",
   },

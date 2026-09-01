@@ -35,13 +35,16 @@ const WHY: Record<string, string> = {
   no_matching_allow: "No house rule covers it.",
   annotation_mismatch: "It said it only reads. It writes.",
   approval_synthetic: "Something clicked Approve that was not you.",
+  approval_present: "You proved it was you, not just a click.",
+  presence_refused: "The passkey check was not satisfied.",
+  presence_unavailable: "This device cannot prove a person is here.",
   policy_loosened: "You allowed more than before.",
   policy_tightened: "You allowed less than before.",
   constraint: "It asked for a value your house does not allow.",
   rate_limit: "It has asked too many times, too fast.",
   approval_expired: "Nobody answered, so it was refused.",
   approval_denied: "You said no.",
-  approval_granted: "You said yes.",
+  approval_granted: "You approved this.",
   approval_remembered_grant: "You allowed this earlier.",
   unprotected: "Protection was off, so nothing stopped it.",
 };
@@ -168,8 +171,17 @@ export function toLine(e: TimelineEvent): Line | null {
       technical,
     };
 
+  // How it was approved is the interesting part, not that it was. A passkey
+  // says a person was here; a fallback says the device could not prove that,
+  // and the difference must never be invisible.
   if (e.decision === "require_approval")
-    return { id: e.id, kind: "eye", title: did(e), detail: "You approved this.", technical };
+    return {
+      id: e.id,
+      kind: "eye",
+      title: did(e),
+      detail: (e.reason && WHY[e.reason]) ?? "You approved this.",
+      technical,
+    };
 
   if (e.decision === "unprotected")
     return { id: e.id, kind: "no", title: did(e), detail: WHY.unprotected!, technical };

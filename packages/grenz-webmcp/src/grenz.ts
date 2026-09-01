@@ -17,6 +17,7 @@ import {
   registry,
   type RegistryEntry,
 } from "./takeover.ts";
+import type { PresenceMode } from "./presence.ts";
 import type {
   GrenzConfig,
   GrenzDenial,
@@ -38,6 +39,8 @@ export interface ApprovalRequest {
    * Absent means the card shows the raw arguments instead — never nothing.
    */
   readonly plain?: string;
+  /** The site wants a person proved present, not merely a real click. */
+  readonly presence?: PresenceMode;
   readonly input: unknown;
   readonly timeoutMs: number;
   /** Aborts when the request is resolved elsewhere (timeout, agent hang-up). */
@@ -55,6 +58,8 @@ export interface ApprovalOutcome {
    * again.
    */
   readonly synthetic?: boolean;
+  /** How the presence ceremony went, when the policy asked for one. */
+  readonly presence?: "proved" | "refused" | "unavailable";
 }
 
 export type Approver = (request: ApprovalRequest) => Promise<ApprovalOutcome>;
@@ -352,6 +357,7 @@ export function grenz(config: GrenzConfig = {}): GrenzInstance {
           title: entry.title,
           effect,
           plain: describeInput(config.tools?.[entry.name]?.describe, input),
+          presence: config.tools?.[entry.name]?.presence,
           input,
           timeoutMs,
           close: closer.signal,
@@ -361,9 +367,15 @@ export function grenz(config: GrenzConfig = {}): GrenzInstance {
               granted: o.granted,
               reason: o.synthetic
                 ? "approval_synthetic"
-                : o.granted
-                  ? "approval_granted"
-                  : "approval_denied",
+                : o.presence === "refused"
+                  ? "presence_refused"
+                  : o.presence === "unavailable"
+                    ? "presence_unavailable"
+                    : o.granted
+                      ? o.presence === "proved"
+                        ? "approval_present"
+                        : "approval_granted"
+                      : "approval_denied",
               remember: o.remember,
             }),
           )
