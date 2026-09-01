@@ -270,9 +270,18 @@ body.tech .ev .tk { display: block; }
 .fp-step, .fp-tap { cursor: pointer; }
 .fp-step:hover circle { fill: #3A355280; stroke: #5A5478; }
 .fp-tap:hover .fp-chip { fill: #221F30; }
+/* Focus has to hug the shape, not the element's box. A room's <g> contains the
+   light-pool circles, and their blur filter region is -70%/240%, so the group's
+   bbox is far larger than the room — an outline on it drew two tall verticals
+   with its top and bottom edges outside the plan entirely. Stroke the geometry
+   instead: the floor rect, the chip, the leaf. */
 .fp-room:focus-visible, .fp-step:focus-visible, .fp-tap:focus-visible, .fp-door:focus-visible {
-  outline: 2px solid #6E9BFF; outline-offset: 2px; border-radius: 6px;
+  outline: none;
 }
+.fp-room:focus-visible .fp-floor { stroke: #6E9BFF; stroke-width: 3; }
+.fp-step:focus-visible circle { stroke: #6E9BFF; stroke-width: 2.5; }
+.fp-tap:focus-visible .fp-chip { stroke: #6E9BFF; stroke-width: 2.5; }
+.fp-door:focus-visible .fp-leaf { stroke: #6E9BFF; stroke-width: 2.5; }
 
 /* the oven. heat is orange-red so it can never be read as lamplight. */
 .fp-ovenbody { fill: #231F33; stroke: #37314F; stroke-width: 1.5; transition: stroke .5s; }
