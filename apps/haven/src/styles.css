@@ -340,68 +340,135 @@ button, input, textarea { font-family: inherit; font-size: inherit; color: inher
    silently repaints something.
    ========================================================================== */
 
+/* --- the floor plan ------------------------------------------------------
+   Daylight by default. A dark plan makes lit rooms glow beautifully and reads
+   as a security console; the house someone actually lives in is bright, and
+   "light on" is a warm room against cool ones rather than a bright one against
+   black. Every colour goes through a token so both themes are one palette
+   swap, and the dark plan is kept for people running a dark OS. */
 .fp-box {
-  border-radius: 18px;
-  overflow: hidden;
-  margin-bottom: 16px;
-  background: radial-gradient(120% 100% at 50% 0%, #1B2430 0%, #121821 55%, #0C1118 100%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), inset 0 0 60px rgba(0, 0, 0, 0.5);
+  --p-ground: #EDE9E2;
+  --p-ground-2: #E3DED5;
+  --p-floor: #FDFDFD;
+  --p-floor-lit: #FFF4DF;
+  --p-wall: #CFC7BA;
+  --p-furn: #EFECE6;
+  --p-furn-line: #D2CCC1;
+  --p-furn-lit: #F9F0DD;
+  --p-furn-lit-line: #DFD0B0;
+  --p-label: #4A4A55;
+  --p-sub: #93939F;
+  --p-warm: #B4690E;
+  --p-pool: #FFB627;
+  --p-core: #FFD980;
+  --p-pool-o: .30;
+  --p-core-o: .34;
+  --p-chip: #FFFFFF;
+  --p-chip-line: #E2DED7;
+  --p-chip-t: #24242B;
+  --p-chip-s: #8B8B97;
+  --p-step: #F4F2EE;
+  --p-step-line: #DCD7CE;
+  --p-step-mark: #55555F;
+  --p-ok: #15803D;
+  --p-bad: #DC2626;
+  --p-agent: #2563EB;
+  --p-agent-dot: #1D4ED8;
+  --p-swing: #D7D1C7;
+
+  border-radius: 18px; overflow: hidden; margin-bottom: 16px;
+  background: radial-gradient(120% 100% at 50% 0%, var(--p-ground) 0%, var(--p-ground-2) 100%);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .05), 0 2px 4px rgba(0,0,0,.03), 0 18px 40px -24px rgba(0, 0, 0, .22);
 }
+
+@media (prefers-color-scheme: dark) {
+  .fp-box {
+    --p-ground: #1B2430;
+    --p-ground-2: #0C1118;
+    --p-floor: #171E28;
+    --p-floor-lit: #2A2318;
+    --p-wall: #39434F;
+    --p-furn: #212B36;
+    --p-furn-line: #2E3A47;
+    --p-furn-lit: #2C2A25;
+    --p-furn-lit-line: #3E3931;
+    --p-label: #8494A6;
+    --p-sub: #5C6B7C;
+    --p-warm: #FFC451;
+    --p-pool: #FFC451;
+    --p-core: #FFE0A3;
+    --p-pool-o: .34;
+    --p-core-o: .30;
+    --p-chip: #1E2833;
+    --p-chip-line: #333F4C;
+    --p-chip-t: #E8EEF6;
+    --p-chip-s: #7C8B9C;
+    --p-step: #263140;
+    --p-step-line: #3A4756;
+    --p-step-mark: #C6D4E4;
+    --p-ok: #3DD68C;
+    --p-bad: #FF6B6B;
+    --p-agent: #6E9BFF;
+    --p-agent-dot: #CFE0FF;
+    --p-swing: #2E3A47;
+
+    background: radial-gradient(120% 100% at 50% 0%, #1B2430 0%, #121821 55%, #0C1118 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), inset 0 0 60px rgba(0, 0, 0, 0.5);
+  }
+}
+
 .fp-svg { display: block; width: 100%; height: auto; }
 
-.fp-floor { fill: #171E28; transition: fill .6s; }
-.fp-room.lit .fp-floor { fill: #2A2318; }
-.fp-wall { fill: #39434F; }
-.fp-furn { fill: #212B36; stroke: #2E3A47; stroke-width: 1.5; stroke-linejoin: round; }
-.fp-room.lit .fp-furn { fill: #2C2A25; stroke: #3E3931; }
-.fp-swing { fill: none; stroke: #2E3A47; stroke-width: 1.5; stroke-dasharray: 4 5; }
+.fp-floor { fill: var(--p-floor); transition: fill .6s; }
+.fp-room.lit .fp-floor { fill: var(--p-floor-lit); }
+.fp-wall { fill: var(--p-wall); }
+.fp-furn { fill: var(--p-furn); stroke: var(--p-furn-line); stroke-width: 1.5; stroke-linejoin: round; }
+.fp-room.lit .fp-furn { fill: var(--p-furn-lit); stroke: var(--p-furn-lit-line); }
+.fp-swing { fill: none; stroke: var(--p-swing); stroke-width: 1.5; stroke-dasharray: 4 5; }
 
 .fp-label {
-  fill: #8494A6; font-size: 13px; font-weight: 700;
-  letter-spacing: 0.04em; transition: fill .5s;
+  fill: var(--p-label); font-size: 13px; font-weight: 700;
+  letter-spacing: .04em; transition: fill .5s;
 }
 .fp-label.small { font-size: 11px; }
-.fp-sub { fill: #5C6B7C; font-size: 11.5px; font-weight: 500; transition: fill .5s; }
-.fp-room.lit .fp-label, .fp-room.lit .fp-sub { fill: #FFC451; }
+.fp-sub { fill: var(--p-sub); font-size: 11.5px; font-weight: 500; transition: fill .5s; }
+.fp-room.lit .fp-label, .fp-room.lit .fp-sub { fill: var(--p-warm); }
 .fp-room { cursor: pointer; }
-.fp-room:hover .fp-floor { filter: brightness(1.14); }
+.fp-room:hover .fp-floor { filter: brightness(.985); }
+@media (prefers-color-scheme: dark) { .fp-room:hover .fp-floor { filter: brightness(1.14); } }
 
-/* Two layers of bloom, clipped to the room, so light pools instead of smearing. */
-.fp-pool { fill: #FFC451; opacity: 0; transition: opacity .6s; }
-.fp-core { fill: #FFE0A3; opacity: 0; transition: opacity .6s; }
-.fp-room.lit .fp-pool { opacity: .34; }
-.fp-room.lit .fp-core { opacity: .30; }
+.fp-pool { fill: var(--p-pool); opacity: 0; transition: opacity .6s; }
+.fp-core { fill: var(--p-core); opacity: 0; transition: opacity .6s; }
+.fp-room.lit .fp-pool { opacity: var(--p-pool-o); }
+.fp-room.lit .fp-core { opacity: var(--p-core-o); }
 
-.fp-chip { fill: #1E2833; stroke: #333F4C; stroke-width: 1; }
-.fp-chip-t { fill: #E8EEF6; font-size: 13px; font-weight: 700; }
-.fp-chip-s { fill: #7C8B9C; font-size: 10.5px; font-weight: 500; }
-.fp-chip-s.bad { fill: #FF6B6B; font-weight: 700; }
+.fp-chip { fill: var(--p-chip); stroke: var(--p-chip-line); stroke-width: 1; }
+.fp-chip-t { fill: var(--p-chip-t); font-size: 13px; font-weight: 700; }
+.fp-chip-s { fill: var(--p-chip-s); font-size: 10.5px; font-weight: 500; }
+.fp-chip-s.bad { fill: var(--p-bad); font-weight: 700; }
 
-/* The bolt is a mechanism, not a label. */
 .fp-door { cursor: pointer; }
-.fp-bolt { fill: #3DD68C; transition: transform .5s cubic-bezier(.3,1.3,.5,1), fill .4s; }
-.fp-door.open .fp-bolt { transform: translateX(-42px); fill: #FF6B6B; }
-.fp-leaf { fill: #4A5665; transition: fill .4s; }
-.fp-door.open .fp-leaf { fill: #FF6B6B; }
-.fp-doorstate { fill: #3DD68C; font-size: 12.5px; font-weight: 700; transition: fill .4s; }
-.fp-doorstate.open { fill: #FF6B6B; }
+.fp-bolt { fill: var(--p-ok); transition: transform .5s cubic-bezier(.3,1.3,.5,1), fill .4s; }
+.fp-door.open .fp-bolt { transform: translateX(-42px); fill: var(--p-bad); }
+.fp-leaf { fill: var(--p-wall); transition: fill .4s; }
+.fp-door.open .fp-leaf { fill: var(--p-bad); }
+.fp-doorstate { fill: var(--p-ok); font-size: 12.5px; font-weight: 700; transition: fill .4s; }
+.fp-doorstate.open { fill: var(--p-bad); }
 
-/* The agent, made visible. */
 .fp-agent { transition: transform 1.05s cubic-bezier(.45,.05,.25,1); opacity: 0; }
 .fp-agent.here { opacity: 1; }
-.fp-halo { fill: #6E9BFF; opacity: .20; }
-.fp-halo2 { fill: #6E9BFF; opacity: .28; }
-.fp-core-dot { fill: #CFE0FF; }
-.fp-tag { fill: #9FBCFF; font-size: 11px; font-weight: 700; letter-spacing: .03em; }
+.fp-halo { fill: var(--p-agent); opacity: .20; }
+.fp-halo2 { fill: var(--p-agent); opacity: .28; }
+.fp-core-dot { fill: var(--p-agent-dot); }
+.fp-tag { fill: var(--p-agent-dot); font-size: 11px; font-weight: 700; letter-spacing: .03em; }
 .fp-agent.here .fp-halo { animation: fp-breathe 2.4s ease-in-out infinite; }
 @keyframes fp-breathe {
   0%, 100% { transform: scale(1); opacity: .20; }
   50% { transform: scale(1.55); opacity: .06; }
 }
-.fp-agent.blocked .fp-core-dot { fill: #FFD5D5; }
-.fp-agent.blocked .fp-halo, .fp-agent.blocked .fp-halo2 { fill: #FF6B6B; }
-.fp-agent.blocked .fp-tag { fill: #FF9C9C; }
-
+.fp-agent.blocked .fp-core-dot { fill: var(--p-bad); }
+.fp-agent.blocked .fp-halo, .fp-agent.blocked .fp-halo2 { fill: var(--p-bad); }
+.fp-agent.blocked .fp-tag { fill: var(--p-bad); }
 @media (prefers-reduced-motion: reduce) {
   .fp-agent, .fp-bolt, .fp-pool, .fp-core, .fp-floor { transition: none; }
   .fp-agent.here .fp-halo { animation: none; }
@@ -480,13 +547,13 @@ button, input, textarea { font-family: inherit; font-size: inherit; color: inher
 .rules-foot { color: var(--faint); font-size: 12px; line-height: 1.65; max-width: 62ch; margin-top: 4px; }
 
 /* --- plan controls ------------------------------------------------------- */
-.fp-step circle { fill: #263140; stroke: #3A4756; stroke-width: 1; }
-.fp-step path { stroke: #C6D4E4; stroke-width: 2; stroke-linecap: round; fill: none; }
+.fp-step circle { fill: var(--p-step); stroke: var(--p-step-line); stroke-width: 1; transition: fill .15s; }
+.fp-step path { stroke: var(--p-step-mark); stroke-width: 2; stroke-linecap: round; fill: none; }
 .fp-step, .fp-tap { cursor: pointer; }
-.fp-step:hover circle { fill: #33415380; stroke: #55677D; }
-.fp-tap:hover .fp-chip { fill: #263140; }
+.fp-step:hover circle { fill: var(--p-floor-lit); stroke: var(--p-warm); }
+.fp-tap:hover .fp-chip { fill: var(--p-step); }
 .fp-room:focus-visible, .fp-step:focus-visible, .fp-tap:focus-visible, .fp-door:focus-visible {
-  outline: 2px solid #6E9BFF; outline-offset: 2px; border-radius: 6px;
+  outline: 2px solid var(--p-agent); outline-offset: 2px; border-radius: 6px;
 }
 .col.rail.hidden { display: none; }
 .col.rail:not(.hidden) { flex: 1; border-left: 0; }
