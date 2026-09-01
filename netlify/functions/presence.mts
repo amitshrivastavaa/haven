@@ -20,10 +20,17 @@
  *     assertion harvested by another origin does not transfer)
  *
  * What it does NOT establish, said plainly because the gap matters: which
- * human. Enrolment here is trust-on-first-use — the first credential to
- * register for a house wins, and later ones are refused. A real deployment
- * anchors enrolment to a logged-in account instead, and that is the only piece
- * a demo without accounts cannot supply. Everything above it is real.
+ * human. A real deployment anchors enrolment to a logged-in account. A demo
+ * has no accounts, so it anchors to the next best thing it can actually
+ * verify: a first-party id in an HttpOnly cookie, one enrolment per browser,
+ * trust-on-first-use within it. That is a stand-in for an account, not an
+ * account — it says "the same browser that enrolled is asking", never "this
+ * is Amit". Everything above it is real.
+ *
+ * It has to be per browser rather than per site, and not only for honesty: a
+ * single shared credential means the first visitor to enrol is the only one
+ * who can ever approve, and every visitor after them is refused at their own
+ * front door.
  *
  * Web Crypto does ES256 and HMAC. The only hand-parsing left is the DER
  * signature, because WebAuthn signs DER and Web Crypto verifies raw r‖s.
@@ -121,6 +128,15 @@ function derToRaw(der: Uint8Array): Uint8Array {
 
 // ------------------------------------------------------------------ handler
 
+/** Same-origin fetch sends cookies by default, so nothing on the page has to. */
+function readCookie(request: Request, name: string): string | null {
+  for (const part of request.headers.get("cookie")?.split(";") ?? []) {
+    const [key, ...value] = part.trim().split("=");
+    if (key === name) return value.join("=");
+  }
+  return null;
+}
+
 interface Registration {
   credentialId: string;
   /** SPKI public key from getPublicKey(), base64url. */
@@ -128,7 +144,9 @@ interface Registration {
   at: number;
 }
 
-const HOUSE = "haven";
+const COOKIE = "grenz_hid";
+/** Whatever the cookie holds is a store key, so it is validated as one. */
+const HID = /^[A-Za-z0-9_-]{16,64}$/;
 
 export default async function handler(request: Request): Promise<Response> {
   const url = new URL(request.url);
@@ -142,14 +160,38 @@ export default async function handler(request: Request): Promise<Response> {
   };
   if (request.method === "OPTIONS") return new Response(null, { headers: cors });
 
+  // One enrolment per browser. HttpOnly so page script cannot read or forge the
+  // id — the same reasoning as capturing the WebAuthn calls before third-party
+  // script runs. A browser that refuses the cookie simply enrols each time,
+  // which is a real ceremony every time rather than a lockout.
+  let hid = readCookie(request, COOKIE);
+  const issuing = !hid || !HID.test(hid);
+  if (issuing) hid = b64url(crypto.getRandomValues(new Uint8Array(16)));
+  const headers: Record<string, string> = issuing
+    ? {
+        ...cors,
+        "set-cookie": `${COOKIE}=${hid}; Path=/; Max-Age=31536000; HttpOnly; SameSite=Lax${
+          url.protocol === "https:" ? "; Secure" : ""
+        }`,
+      }
+    : cors;
+
   const store = getStore("grenz-presence");
   const json = (body: unknown, status = 200) =>
-    new Response(JSON.stringify(body), { status, headers: cors });
+    new Response(JSON.stringify(body), { status, headers });
 
   try {
     if (request.method === "GET") {
-      const enrolled = (await store.get(HOUSE, { type: "json" })) as Registration | null;
-      return json({ ...(await mintChallenge()), enrolled: Boolean(enrolled) });
+      const enrolled = (await store.get(hid!, { type: "json" })) as Registration | null;
+      // The credential id goes back with it: it is not a secret (every
+      // assertion request carries it), and returning it makes the server the
+      // source of truth. A browser that lost its localStorage can still
+      // assert instead of trying to enrol a second key and being refused.
+      return json({
+        ...(await mintChallenge()),
+        enrolled: Boolean(enrolled),
+        credentialId: enrolled?.credentialId,
+      });
     }
 
     const body = (await request.json()) as Record<string, string>;
@@ -157,11 +199,12 @@ export default async function handler(request: Request): Promise<Response> {
     if (!challenge) return json({ verified: false, why: "challenge_invalid" }, 400);
 
     // --- enrolment ---------------------------------------------------------
-    // First credential wins. A second one is refused rather than silently
-    // replacing the first, which is what would let an attacker swap in a key
-    // it holds. In production this is an account check, not a first-come rule.
+    // First credential wins, within this browser. A second one is refused
+    // rather than silently replacing the first, which is what would let an
+    // attacker swap in a key it holds. In production this is an account check,
+    // not a first-come rule.
     if (body.op === "enrol") {
-      const existing = (await store.get(HOUSE, { type: "json" })) as Registration | null;
+      const existing = (await store.get(hid!, { type: "json" })) as Registration | null;
       if (existing && existing.credentialId !== body.credentialId)
         return json({ verified: false, why: "already_enrolled" }, 409);
       const record: Registration = {
@@ -169,12 +212,12 @@ export default async function handler(request: Request): Promise<Response> {
         publicKey: body.publicKey!,
         at: Date.now(),
       };
-      await store.setJSON(HOUSE, record);
+      await store.setJSON(hid!, record);
       return json({ verified: true, enrolled: true });
     }
 
     // --- assertion ---------------------------------------------------------
-    const record = (await store.get(HOUSE, { type: "json" })) as Registration | null;
+    const record = (await store.get(hid!, { type: "json" })) as Registration | null;
     if (!record) return json({ verified: false, why: "not_enrolled" }, 400);
     if (record.credentialId !== body.credentialId)
       return json({ verified: false, why: "unknown_credential" }, 403);

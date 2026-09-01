@@ -31,7 +31,12 @@ export const verifier: Verifier = {
   async challenge() {
     const response = await ask();
     if (!response.ok) throw new Error(`challenge failed: ${response.status}`);
-    return (await response.json()) as { challenge: string; token: string; enrolled?: boolean };
+    return (await response.json()) as {
+      challenge: string;
+      token: string;
+      enrolled?: boolean;
+      credentialId?: string;
+    };
   },
 
   async enrol(proof) {

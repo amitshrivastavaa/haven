@@ -80,7 +80,13 @@ export type PresenceMode = "required" | "preferred";
  */
 export interface Verifier {
   /** A server-issued challenge, plus whatever the server needs to recognise it. */
-  challenge(): Promise<{ challenge: string; token: string; enrolled?: boolean }>;
+  challenge(): Promise<{
+    challenge: string;
+    token: string;
+    enrolled?: boolean;
+    /** What this browser enrolled, if anything. Not a secret. */
+    credentialId?: string;
+  }>;
   /** Hand a new credential to the server. */
   enrol(proof: { token: string; credentialId: string; publicKey: string }): Promise<boolean>;
   /** True only when the server verified the signature against a known key. */
@@ -179,7 +185,7 @@ async function ceremony(userLabel: string, verifier?: Verifier): Promise<Presenc
   // The challenge has to come from somewhere the page does not control. With
   // no verifier there is nowhere, so a local random one is used and the result
   // is reported as unverified rather than dressed up as proof.
-  let issued: { challenge: string; token: string; enrolled?: boolean } | null = null;
+  let issued: Awaited<ReturnType<Verifier["challenge"]>> | null = null;
   if (verifier) {
     try {
       issued = await verifier.challenge();
@@ -188,9 +194,14 @@ async function ceremony(userLabel: string, verifier?: Verifier): Promise<Presenc
       // weaker check than promised, so it is never quietly treated as one.
       return { ok: false, reason: "rejected", message: "The site could not reach its own server." };
     }
-    // A credential this browser remembers but the server has never seen cannot
-    // be asserted against anything, so enrol instead of failing at the verify.
+    // The server is the source of truth for what is enrolled here; local
+    // storage is only a cache of it. A credential the server has never seen
+    // cannot be asserted against anything, and an enrolment the browser has
+    // forgotten can still be asserted with — without this, clearing site data
+    // would put someone at a front door that refuses them, because a second
+    // key is refused rather than allowed to replace the first.
     if (issued.enrolled === false) existing = null;
+    else existing ??= issued.credentialId ?? null;
   }
   const challengeBytes = issued ? fromBase64Url(issued.challenge) : randomChallenge();
 
