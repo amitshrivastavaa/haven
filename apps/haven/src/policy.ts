@@ -46,6 +46,19 @@ export const rules: Record<string, Rule> = {
     constraints: { scene: { required: true, enum: ["home", "away", "movie", "goodnight"] } },
   },
 
+  // The oven is the one appliance here that can start a fire, so the bounds are
+  // the site's knowledge of its own hardware. The "not while nobody is home"
+  // interlock is deliberately NOT here: it depends on live house state, which a
+  // static policy cannot see, so the tool enforces it and says so. Being honest
+  // about that boundary matters more than making the policy look omnipotent.
+  set_oven: {
+    action: "allow",
+    constraints: {
+      targetC: { required: true, min: 50, max: 220 },
+      minutes: { required: true, min: 1, max: 45 },
+    },
+  },
+
   lock_door: { action: "allow" },
 
   unlock_door: {
@@ -110,6 +123,7 @@ export const RULE_COPY: RuleCopy[] = [
   { tool: "get_doorbell_events", said: "Read who came to the door", what: "Read the door intercom", limit: "written by strangers" },
   { tool: "get_house_state", said: "See how the house is set", what: "See how the house is set" },
   { tool: "set_scene", said: "Switch the house between Home, Away, Movie and Goodnight", what: "Set a scene" },
+  { tool: "set_oven", said: "Run the oven, up to 45 minutes at a time", what: "Run the oven", limit: "50–220°, and never while nobody is home" },
   { tool: "lock_door", said: "Lock the front door", what: "Lock the front door" },
   { tool: "unlock_door", said: "Ask you before unlocking the front door", what: "Unlock the front door" },
   { tool: "disarm_alarm", said: "Ask you before turning off the alarm", what: "Turn the alarm off" },

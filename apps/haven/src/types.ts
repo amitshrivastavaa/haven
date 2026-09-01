@@ -42,6 +42,14 @@ export interface DoorbellEvent {
   transcript: string;
 }
 
+export interface Oven {
+  on: boolean;
+  /** Degrees Celsius. */
+  targetC: number;
+  /** How long it was told to run for. */
+  minutes: number;
+}
+
 export interface House {
   lights: Light[];
   /** Measured room temperature, °C. */
@@ -51,6 +59,7 @@ export interface House {
   doorLocked: boolean;
   alarmArmed: boolean;
   scene: SceneId;
+  oven: Oven;
   /** People with standing access. The attacker wants a row here. */
   access: string[];
 }

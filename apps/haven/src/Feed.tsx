@@ -51,6 +51,8 @@ function attempt(e: TimelineEvent): string {
       return `${a.on === false ? "Turn off" : "Switch"} the ${a.lightId ?? ""} light`.replace("  ", " ");
     case "set_thermostat":
       return `Set the heating to ${a.targetC}°`;
+    case "set_oven":
+      return `Run the oven at ${a.targetC}° for ${a.minutes} minutes`;
     case "set_scene":
       return `Set the house to ${a.scene}`;
     case "lock_door":
@@ -90,7 +92,8 @@ function did(e: TimelineEvent): string {
     .replace(/^Turn /, "Turned ")
     .replace(/^Give /, "Gave ")
     .replace(/^Check /, "Checked ")
-    .replace(/^Read /, "Read ");
+    .replace(/^Read /, "Read ")
+    .replace(/^Run /, "Started ");
 }
 
 interface Line {

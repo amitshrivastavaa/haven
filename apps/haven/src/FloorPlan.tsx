@@ -48,6 +48,8 @@ export function spotFor(tool: string, input?: unknown): Spot {
     case "set_thermostat":
     case "eco_optimize":
       return "thermo";
+    case "set_oven":
+      return "kitchen";
     case "disarm_alarm":
       return "alarm";
     case "lock_door":
@@ -183,7 +185,22 @@ export function FloorPlan({
           <g className="fp-furn" clipPath="url(#clip-kit)">
             <rect x={364} y={196} width={180} height={38} rx={5} />
             <circle cx={404} cy={215} r={11} />
-            <rect x={596} y={150} width={98} height={84} rx={6} />
+          </g>
+
+          {/* Heat reads orange-red. Lamplight is yellow. Nobody should confuse
+              "this room is lit" with "something in here is 200 degrees". */}
+          <g className={`fp-oven ${house.oven.on ? "hot" : ""}`}>
+            <g clipPath="url(#clip-kit)">
+              <circle className="fp-heat" cx={646} cy={168} r={82} filter="url(#fp-bloom)" />
+            </g>
+            <rect className="fp-ovenbody" x={598} y={124} width={96} height={72} rx={8} />
+            <rect className="fp-ovenwin" x={608} y={138} width={76} height={44} rx={5} />
+            <text className="fp-ovenlabel" x={646} y={214} textAnchor="middle">
+              Oven
+            </text>
+            <text className="fp-ovenstate" x={646} y={230} textAnchor="middle">
+              {house.oven.on ? `${house.oven.targetC}° · ${house.oven.minutes} min` : "Off"}
+            </text>
           </g>
         </Room>
 

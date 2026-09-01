@@ -133,6 +133,30 @@ export function App() {
   });
 
   useGrenzTool(g, {
+    name: "set_oven",
+    title: "Run the oven",
+    description:
+      "Start the oven at a temperature, for a number of minutes. Refuses while the house is set to Away.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        targetC: { type: "number", description: "Oven temperature, 50-220 °C" },
+        minutes: { type: "number", description: "How long to run for, 1-45" },
+      },
+      required: ["targetC", "minutes"],
+    },
+    execute: async ({ targetC, minutes }: { targetC: number; minutes: number }) => {
+      // The policy allowed the call; the appliance still gets a say. This
+      // interlock depends on live state, so it cannot live in a static policy —
+      // and a refusal here is honestly a different thing from a policy denial.
+      if (house.scene === "away")
+        return { error: "The house is set to Away. The oven does not run when nobody is home." };
+      patch({ oven: { on: true, targetC, minutes } });
+      return { on: true, targetC, minutes };
+    },
+  });
+
+  useGrenzTool(g, {
     name: "set_scene",
     title: "Set a scene",
     description:
@@ -296,6 +320,13 @@ export function App() {
     ["grant_permanent_access", { who: "Halden HVAC" }],
   ]);
 
+  // 250° for three hours is refused by the constraint; 180° for 45 minutes is
+  // not. Same tool, same call shape, one is a roast and one is a house fire.
+  const dinner = play([
+    ["set_oven", { targetC: 250, minutes: 180 }],
+    ["set_oven", { targetC: 180, minutes: 45 }],
+  ]);
+
   const evening = play([
     ["get_house_state", {}],
     ["set_thermostat", { targetC: 45 }],
@@ -349,6 +380,7 @@ export function App() {
       scene: s,
       targetC: preset.targetC,
       lights: h.lights.map((l) => ({ ...l, on: preset.lights.includes(l.id) })),
+      oven: s === "away" ? { on: false, targetC: 0, minutes: 0 } : h.oven,
     }));
   }, []);
 
@@ -434,6 +466,9 @@ export function App() {
           <div className="run">
             <button className="btn primary" onClick={sam} disabled={busy}>
               ▶ Sam the dog walker
+            </button>
+            <button className="btn" onClick={dinner} disabled={busy}>
+              ▶ Dinner at seven
             </button>
             <button className="btn" onClick={evening} disabled={busy}>
               ▶ Evening in

@@ -19,6 +19,7 @@ export const initialHouse: House = {
   doorLocked: true,
   alarmArmed: true,
   scene: "home",
+  oven: { on: false, targetC: 0, minutes: 0 },
   access: ["You", "Priya (partner)"],
 };
 
