@@ -48,6 +48,13 @@ export interface ApprovalOutcome {
   readonly granted: boolean;
   /** "Approve for the rest of this session" was ticked. */
   readonly remember?: boolean;
+  /**
+   * Something that was not a person clicked Approve. Always accompanied by
+   * `granted: false` — a request someone tried to self-approve is answered no,
+   * not merely ignored, because ignoring leaves the card up to be attacked
+   * again.
+   */
+  readonly synthetic?: boolean;
 }
 
 export type Approver = (request: ApprovalRequest) => Promise<ApprovalOutcome>;
@@ -352,7 +359,11 @@ export function grenz(config: GrenzConfig = {}): GrenzInstance {
           .then((o) =>
             finish({
               granted: o.granted,
-              reason: o.granted ? "approval_granted" : "approval_denied",
+              reason: o.synthetic
+                ? "approval_synthetic"
+                : o.granted
+                  ? "approval_granted"
+                  : "approval_denied",
               remember: o.remember,
             }),
           )

@@ -34,6 +34,14 @@ export type ReasonCode =
   /** Sliding-window rate limit exceeded. */
   | "rate_limit"
   /** Protection was switched off; the call ran ungoverned. Timeline-only. */
+  /**
+   * Something clicked Approve that was not a person. Browsers mark every event
+   * they synthesise from real input `isTrusted: true`, and nothing running in
+   * the page can forge that — so a script, a partner widget or an injected
+   * tool trying to grant its own permission is detectable, and is treated as
+   * an answer of no.
+   */
+  | "approval_synthetic"
   | "unprotected"
   /** A rule was relaxed: the assistant may now do more than it could. */
   | "policy_loosened"

@@ -301,6 +301,8 @@ function showCard(request: ApprovalRequest): Promise<ApprovalOutcome> {
         settle({ granted: false });
       } else if (e.key === "Enter" && !e.isComposing) {
         e.preventDefault();
+        // Enter is an approval, so it is held to the same standard as a click.
+        if (!e.isTrusted) return settle({ granted: false, synthetic: true });
         settle({ granted: true, remember: checkbox.checked });
       } else if (e.key === "Tab") {
         // Minimal focus trap: keep Tab inside the card.
@@ -312,9 +314,32 @@ function showCard(request: ApprovalRequest): Promise<ApprovalOutcome> {
       }
     };
 
+    /**
+     * Approval requires a real click.
+     *
+     * `isTrusted` is set by the browser on events it synthesises from actual
+     * input, and page script cannot forge it: `element.click()` and
+     * `dispatchEvent(new MouseEvent(...))` are both false. That makes the whole
+     * in-page class — a partner widget, an injected tool, anything sharing this
+     * realm — unable to grant its own permission, which is the class WebMCP
+     * creates by moving tool execution into the page.
+     *
+     * It does NOT distinguish a person from an agent driving the real mouse;
+     * that event is genuinely trusted. Telling those two apart is the user
+     * agent's job, and the spec leaves the whole of mediation there.
+     *
+     * The attempt answers no rather than being ignored, because an ignored
+     * card stays up to be attacked again.
+     */
+    const humanOnly = (run: () => void) => (e: Event) => {
+      if (e.isTrusted) return run();
+      settle({ granted: false, synthetic: true });
+    };
+
     denyBtn.addEventListener("click", () => settle({ granted: false }));
-    approveBtn.addEventListener("click", () =>
-      settle({ granted: true, remember: checkbox.checked }),
+    approveBtn.addEventListener(
+      "click",
+      humanOnly(() => settle({ granted: true, remember: checkbox.checked })),
     );
     // Resolved elsewhere: the timeout fired, or the agent hung up.
     request.close.addEventListener("abort", () => settle({ granted: false }), { once: true });
@@ -403,6 +428,7 @@ const BADGE: Record<TimelineEvent["decision"], { cls: string; label: string }> =
 const REASON: Record<ReasonCode, string> = {
   policy_loosened: "a house rule was relaxed",
   policy_tightened: "a house rule was tightened",
+  approval_synthetic: "something clicked Approve that was not you",
   explicit_allow: "a house rule allows this",
   explicit_deny: "a house rule says never",
   approval_required: "a house rule says ask me first",

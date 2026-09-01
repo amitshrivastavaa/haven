@@ -34,6 +34,7 @@ const WHY: Record<string, string> = {
   explicit_deny: "A house rule says never.",
   no_matching_allow: "No house rule covers it.",
   annotation_mismatch: "It said it only reads. It writes.",
+  approval_synthetic: "Something clicked Approve that was not you.",
   policy_loosened: "You allowed more than before.",
   policy_tightened: "You allowed less than before.",
   constraint: "It asked for a value your house does not allow.",
