@@ -50,11 +50,7 @@ export type ReasonCode =
   | "presence_refused"
   /** The site required presence and this device cannot prove it. */
   | "presence_unavailable"
-  | "unprotected"
-  /** A rule was relaxed: the assistant may now do more than it could. */
-  | "policy_loosened"
-  /** A rule was narrowed. Recorded too, so the trail reads as a history. */
-  | "policy_tightened";
+  | "unprotected";
 
 /** Config sugar. `approve` is the author-facing spelling of `require_approval`. */
 export type ToolAction = "allow" | "deny" | "approve";
@@ -150,7 +146,7 @@ export interface GrenzConfig {
  */
 import type { PresenceMode, Verifier } from "./presence.ts";
 
-export type EventKind = "register" | "call" | "grant" | "policy";
+export type EventKind = "register" | "call" | "grant";
 
 export interface TimelineEvent {
   readonly id: string;
@@ -170,9 +166,6 @@ export interface TimelineEvent {
   readonly foreign?: boolean;
   /** The tool's registration claimed `readOnlyHint: true`. */
   readonly claimedReadOnly?: boolean;
-  /** On a `policy` event: what the rule was, and what it became. */
-  readonly from?: ToolAction;
-  readonly to?: ToolAction;
   /**
    * The tool declared `untrustedContentHint: true` — its result may carry
    * content the site does not vouch for. The spec names this as a mitigation

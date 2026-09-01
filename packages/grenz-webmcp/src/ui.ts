@@ -458,8 +458,6 @@ const BADGE: Record<TimelineEvent["decision"], { cls: string; label: string }> =
  * member reads is a sentence about their own house.
  */
 const REASON: Record<ReasonCode, string> = {
-  policy_loosened: "a house rule was relaxed",
-  policy_tightened: "a house rule was tightened",
   approval_synthetic: "something clicked Approve that was not you",
   approval_present: "you proved it was you, and the site's server checked it",
   presence_unverified: "a passkey answered, but nothing off-page checked it",

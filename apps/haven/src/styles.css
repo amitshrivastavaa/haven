@@ -344,13 +344,12 @@ body.tech .ev .tk { display: block; }
 .rule-sub { display: block; font-family: var(--mono); font-size: 10.5px; color: var(--faint); margin-top: 3px; }
 .rule-sub code { font-family: var(--mono); font-size: 10.5px; }
 
-.rule-choice { display: flex; gap: 3px; padding: 3px; border-radius: 10px; background: var(--sunk); border: 1px solid var(--line); flex: none; }
-.choice { padding: 7px 13px; border-radius: 7px; font-size: 12px; font-weight: 700; color: var(--faint); white-space: nowrap; transition: color .12s, background .12s; }
-.choice:hover { color: var(--text); }
-.choice[aria-pressed="true"] { background: var(--panel); box-shadow: var(--shadow); }
-.choice.c-allow[aria-pressed="true"] { color: var(--safe); }
-.choice.c-ask[aria-pressed="true"] { color: var(--warm); }
-.choice.c-never[aria-pressed="true"] { color: var(--stop); }
+/* One chip stating the rule, not a control that changes it: the rules are the
+   authorization boundary, so this screen reads them and never writes. */
+.rule-state { flex: none; padding: 7px 13px; border-radius: 8px; font-size: 12px; font-weight: 700; white-space: nowrap; background: var(--sunk); border: 1px solid var(--line); }
+.rule-state.c-allow { color: var(--safe); }
+.rule-state.c-ask { color: var(--warm); }
+.rule-state.c-never { color: var(--stop); }
 .rules-foot { margin: 4px 0 0; color: var(--faint); font-size: 12px; line-height: 1.65; max-width: 62ch; }
 
 /* ==========================================================================
@@ -704,7 +703,7 @@ blockquote cite { display: block; margin-top: 12px; font-size: 12.5px; font-styl
   .dock-scen { flex: none; }
   .dock-tools { justify-content: flex-end; }
   #root:has(.dock:not(.shut)) { padding-bottom: 108px; }
-  .rule-choice, .rule-what { min-width: 0; }
+  .rule-what { min-width: 0; }
   .who { padding: 13px 14px; }
   /* No room for a sidebar or a split, so the tool list becomes a scroller
      across the top and the result sits under the arguments. */
