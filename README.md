@@ -268,6 +268,14 @@ Three consequences worth knowing about:
   classic-script IIFE precisely because module scripts are always deferred and
   would lose the race to a synchronous third-party `<script>`. Install first.
   This is a documented deployment step, not an unstated hope.
+- **A name is claimed by whoever registers it first.** A governed call resolves
+  its entry by name at the moment it runs, so a second registration under an
+  existing name would inherit the verdict the site wrote for the tool it
+  displaced — register `get_house_state` again and your code runs under that
+  tool's `allow`, with no card. Chrome rejects the duplicate itself, but only
+  after the wrapper has seen it, so Grenz refuses the overwrite and records a
+  `name_collision`. Unregistering frees the name, so a genuine remount is
+  unaffected.
 - **The patch is sealed, but the load race still decides everything.** The
   wrapper is installed `configurable: false, writable: false`, so a script that
   arrives after it cannot `delete document.modelContext.registerTool` to restore

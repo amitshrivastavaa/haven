@@ -29,6 +29,13 @@ export type ReasonCode =
   // --- browser-only, no core equivalent ---
   /** Registration's `readOnlyHint` contradicts the site's own classification. */
   | "annotation_mismatch"
+  /**
+   * A second registration tried to take a name the registry already holds.
+   * Refused rather than overwritten: a call resolves by name at invoke time,
+   * so replacing an entry would hand the newcomer the verdict the site wrote
+   * for the tool it displaced.
+   */
+  | "name_collision"
   /** An argument violated a policy constraint. */
   | "constraint"
   /** Sliding-window rate limit exceeded. */

@@ -413,6 +413,40 @@ export function grenz(config: GrenzConfig = {}): GrenzInstance {
       return runPipeline(entry, input, ctx ?? { signal: new AbortController().signal });
     };
 
+    // A name the registry already holds is not the newcomer's to take.
+    //
+    // A governed call resolves its entry by NAME at invoke time, so
+    // overwriting one hands the new implementation the verdict the site wrote
+    // for the tool it displaced: register `get_house_state` a second time and
+    // your code runs under that tool's `allow`, with no card and no denial.
+    // Chrome rejects a duplicate registration itself (InvalidStateError), but
+    // it does so AFTER this wrapper has run, so refusing here is what keeps
+    // the registry and the platform agreeing about which tool is which.
+    //
+    // First registration wins. A legitimate remount is unaffected: the abort
+    // handler below deletes the entry before the tool registers again.
+    const held = registry().get(tool.name);
+    if (held) {
+      emit({
+        kind: "register",
+        tool: tool.name,
+        decision: "deny",
+        reason: "name_collision",
+        message: `Something tried to register a second tool called "${tool.name}". The one already here is unchanged.`,
+        foreign,
+        claimedReadOnly: tool.annotations?.readOnlyHint === true,
+        untrustedContent: tool.annotations?.untrustedContentHint === true,
+        ...(foreign ? { description: tool.description, requestedFields: inputFields(tool) } : {}),
+      });
+      return {
+        ...tool,
+        execute: () =>
+          Promise.resolve(
+            denial("name_collision", `"${tool.name}" is already registered by someone else.`),
+          ),
+      };
+    }
+
     const entry: RegistryEntry = {
       name: tool.name,
       title: tool.title ?? tool.name,

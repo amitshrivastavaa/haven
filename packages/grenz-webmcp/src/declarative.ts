@@ -24,9 +24,16 @@
  *
  * Adopted tools are deliberately treated as unvouched-for. A form in the site's
  * own HTML and a form injected into it are indistinguishable at this layer, so
- * the safe reading is the deny-by-default one: unless the site's policy names
- * the tool, it does not run. A site that wants its own form tool allowed says
- * so in the policy, the same as for any other tool.
+ * the safe reading is the deny-by-default one: a name the policy does not
+ * mention does not run. A site that wants its own form tool allowed says so in
+ * the policy, the same as for any other tool.
+ *
+ * That is a claim about *names*, and on its own it was not enough. An injected
+ * form naming an allow-listed tool used to overwrite that tool's registry
+ * entry and inherit its verdict — the site's `allow` running the attacker's
+ * form submit. The registry refuses to replace a live entry (see `wrap` in
+ * grenz.ts), so the first registration keeps the name and a colliding form is
+ * left inert with its `toolname` stripped.
  */
 
 import type { ModelContextLike, ToolDescriptor } from "./types.ts";

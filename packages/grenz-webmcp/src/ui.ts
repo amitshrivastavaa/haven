@@ -473,6 +473,7 @@ const REASON: Record<ReasonCode, string> = {
   presence_unverified: "a passkey answered, but nothing off-page checked it",
   presence_refused: "the passkey check was not satisfied",
   presence_unavailable: "this device cannot prove a person is here",
+  name_collision: "something else already registered under that name",
   explicit_allow: "a house rule allows this",
   explicit_deny: "a house rule says never",
   approval_required: "a house rule says ask me first",
