@@ -454,3 +454,75 @@ body.tech .ev .tk { display: block; }
   border: 1px solid var(--warm-line); flex: none;
 }
 .empty-detail { color: var(--faint); font-size: 12.5px; }
+
+/* ==========================================================================
+   The pitch.
+
+   A view, not a separate page — the tools stay registered on the document
+   while this is showing, which is also the claim it makes, so the counter is
+   read from the live registry rather than typed into the copy.
+   ========================================================================== */
+.pitch { max-width: 780px; margin: 0 auto; }
+
+.pitch-hero { padding: 26px 0 40px; }
+.pitch-hero h1 {
+  margin: 14px 0 0; font-family: var(--display); font-size: clamp(30px, 5vw, 46px);
+  font-weight: 800; letter-spacing: -.045em; line-height: 1.08; text-wrap: balance;
+}
+.pitch-lead { margin: 20px 0 0; font-size: 16px; line-height: 1.65; color: var(--dim); max-width: 62ch; }
+.pitch-lead em { font-style: italic; color: var(--text); }
+
+.pitch-cta { display: flex; align-items: center; gap: 18px; margin-top: 28px; flex-wrap: wrap; }
+.enter {
+  padding: 13px 22px; border-radius: 12px; background: var(--accent); color: var(--on-accent);
+  font-size: 14.5px; font-weight: 700; box-shadow: var(--shadow);
+}
+.enter:hover { background: #2C2A34; }
+.pitch-repo { font-size: 13.5px; font-weight: 700; color: var(--dim); text-decoration: underline; text-underline-offset: 3px; }
+.pitch-repo:hover { color: var(--text); }
+
+.proof {
+  display: flex; align-items: flex-start; gap: 11px; margin-top: 30px;
+  padding: 14px 17px; border-radius: 13px; background: var(--panel);
+  border: 1px solid var(--line); font-size: 13.5px; line-height: 1.6; color: var(--dim);
+}
+.proof-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex: none; margin-top: 7px;
+  background: var(--safe); box-shadow: 0 0 0 4px var(--safe-soft);
+}
+
+.pitch-block { padding: 34px 0; border-top: 1px solid var(--line); }
+.pitch-block > h2 { margin: 0 0 16px; }
+.pitch-block p { margin: 0 0 14px; font-size: 14.5px; line-height: 1.7; color: var(--dim); max-width: 66ch; }
+.pitch-block p:last-child { margin-bottom: 0; }
+.pitch-block b { color: var(--text); }
+.pitch-block code { font-size: 12.5px; background: var(--sunk); padding: 1px 6px; border-radius: 5px; color: var(--text); }
+.pitch-note { font-size: 13.5px !important; }
+.lit { font-family: var(--mono); font-size: 12.5px; color: var(--text); }
+
+blockquote {
+  margin: 0 0 18px; padding: 18px 22px; border-radius: 14px;
+  background: var(--panel); border: 1px solid var(--line);
+  font-size: 16px; line-height: 1.6; color: var(--text); font-weight: 500;
+}
+blockquote cite { display: block; margin-top: 12px; font-size: 12.5px; font-style: normal; color: var(--faint); font-weight: 400; }
+
+.code {
+  margin: 0 0 16px; padding: 16px 18px; border-radius: 12px; overflow-x: auto;
+  background: #14131A; font-family: var(--mono); font-size: 13px; line-height: 1.6; color: #E7E4DF;
+}
+.c-tag { color: #9FBCFF; } .c-attr { color: #FFD98A; } .c-str { color: #7FE9C4; }
+
+.steps { list-style: none; margin: 0 0 16px; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.steps li { display: flex; gap: 16px; padding: 13px 0; border-bottom: 1px solid var(--line-soft); }
+.steps li:last-child { border-bottom: 0; }
+.step-n { font-family: var(--mono); font-size: 11px; color: var(--faint); flex: none; padding-top: 3px; letter-spacing: .1em; }
+.steps b { display: block; font-size: 14.5px; }
+.steps span { display: block; margin-top: 3px; font-size: 13.5px; line-height: 1.6; color: var(--dim); }
+
+.whys { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 11px; }
+.whys li { position: relative; padding-left: 20px; font-size: 14px; line-height: 1.65; color: var(--dim); }
+.whys li::before { content: ""; position: absolute; left: 0; top: 9px; width: 7px; height: 7px; border-radius: 2px; background: var(--accent-line); }
+
+.pitch-foot { padding: 34px 0 20px; border-top: 1px solid var(--line); display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+.pitch-foot p { margin: 0; font-size: 13.5px; color: var(--faint); line-height: 1.6; flex: 1; min-width: 260px; }

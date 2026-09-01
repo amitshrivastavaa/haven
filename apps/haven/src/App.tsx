@@ -8,6 +8,7 @@ import { ActivityCard, useLines } from "./Feed";
 import { Access } from "./Access";
 import { History } from "./History";
 import { Demo, type Scenario } from "./Demo";
+import { Pitch } from "./Pitch";
 import { Rules } from "./Rules";
 import { FloorPlan, spotFor, type Spot } from "./FloorPlan";
 import { loadEcoSaver, loadHomeInsights, unloadEcoSaver, unloadHomeInsights } from "./widgets";
@@ -29,6 +30,9 @@ export function App() {
   const [rulesOpen, setRulesOpen] = useState(false);
   const [view, setView] = useState<View>("home");
   const [demoOpen, setDemoOpen] = useState(false);
+  const [entered, setEntered] = useState(
+    () => new URLSearchParams(location.search).has("app"),
+  );
 
   const webmcp = useMemo(hasWebMCP, []);
   const polyfilled = useMemo(() => Boolean((window as any).__grenzPolyfilled), []);
@@ -433,6 +437,24 @@ export function App() {
     },
   ];
 
+  // The pitch is a view, not a page. Every tool above is already registered on
+  // the document while it shows, so an agent that connects here sees the whole
+  // governed surface — which is the thing the pitch claims.
+  if (!entered) {
+    return (
+      <div className="wrap">
+        {!webmcp && (
+          <Banner kind="info">
+            This browser has no WebMCP. Open this in ChatGPT's browser, or enable{" "}
+            <code>chrome://flags/#enable-webmcp-testing</code> in Chrome, to drive the house with a
+            real assistant. Everything below is true either way.
+          </Banner>
+        )}
+        <Pitch onEnter={() => setEntered(true)} />
+      </div>
+    );
+  }
+
   return (
     <div className="wrap">
       <Head
@@ -445,6 +467,7 @@ export function App() {
         onView={setView}
         refused={refused}
         onDemo={() => setDemoOpen(true)}
+        onPitch={() => setEntered(false)}
       />
 
       {!protection && (

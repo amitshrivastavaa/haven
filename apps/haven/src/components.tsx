@@ -22,6 +22,7 @@ export function Head({
   onView,
   refused,
   onDemo,
+  onPitch,
 }: {
   webmcp: boolean;
   polyfilled: boolean;
@@ -32,10 +33,13 @@ export function Head({
   onView: (v: View) => void;
   refused: number;
   onDemo: () => void;
+  onPitch: () => void;
 }) {
   return (
     <div className="head">
-      <div className="logo">H</div>
+      <button className="logo" onClick={onPitch} aria-label="What Grenz is">
+        H
+      </button>
       <div>
         <h1>Haven</h1>
         <p className="sub">
