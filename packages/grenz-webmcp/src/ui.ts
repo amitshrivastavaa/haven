@@ -401,6 +401,8 @@ const BADGE: Record<TimelineEvent["decision"], { cls: string; label: string }> =
  * member reads is a sentence about their own house.
  */
 const REASON: Record<ReasonCode, string> = {
+  policy_loosened: "a house rule was relaxed",
+  policy_tightened: "a house rule was tightened",
   explicit_allow: "a house rule allows this",
   explicit_deny: "a house rule says never",
   approval_required: "a house rule says ask me first",

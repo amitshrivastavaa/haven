@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { ToolAction } from "grenz-webmcp";
-import { RULE_COPY, rules, setRuleAction } from "./policy";
+import { RULE_COPY, rules } from "./policy";
+import { g } from "./grenz-instance";
 
 /**
  * The house rules, as a screen a resident owns.
@@ -81,9 +82,11 @@ export function Rules({ onClose }: { onClose: () => void }) {
                           key={c.action}
                           className={`choice ${c.cls}`}
                           aria-pressed={current === c.action}
+                          // Through Grenz, not straight into `rules`. Relaxing
+                          // a rule buys every future call at once, so it asks
+                          // first and lands in the audit trail either way.
                           onClick={() => {
-                            setRuleAction(r.tool, c.action);
-                            bump((n) => n + 1);
+                            void g.changeRule(r.tool, c.action).then(() => bump((n) => n + 1));
                           }}
                         >
                           {c.label}

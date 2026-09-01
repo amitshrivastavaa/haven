@@ -34,7 +34,11 @@ export type ReasonCode =
   /** Sliding-window rate limit exceeded. */
   | "rate_limit"
   /** Protection was switched off; the call ran ungoverned. Timeline-only. */
-  | "unprotected";
+  | "unprotected"
+  /** A rule was relaxed: the assistant may now do more than it could. */
+  | "policy_loosened"
+  /** A rule was narrowed. Recorded too, so the trail reads as a history. */
+  | "policy_tightened";
 
 /** Config sugar. `approve` is the author-facing spelling of `require_approval`. */
 export type ToolAction = "allow" | "deny" | "approve";
@@ -102,7 +106,12 @@ export interface GrenzConfig {
   readonly scheduler?: (fn: () => void, ms: number) => () => void;
 }
 
-export type EventKind = "register" | "call" | "grant";
+/**
+ * `policy` records a change to the rules themselves. Loosening a rule is the
+ * highest-value move an attacker can make — it buys every future call at once
+ * — so it cannot be the one thing the trail does not show.
+ */
+export type EventKind = "register" | "call" | "grant" | "policy";
 
 export interface TimelineEvent {
   readonly id: string;
@@ -122,6 +131,9 @@ export interface TimelineEvent {
   readonly foreign?: boolean;
   /** The tool's registration claimed `readOnlyHint: true`. */
   readonly claimedReadOnly?: boolean;
+  /** On a `policy` event: what the rule was, and what it became. */
+  readonly from?: ToolAction;
+  readonly to?: ToolAction;
   /**
    * The tool declared `untrustedContentHint: true` — its result may carry
    * content the site does not vouch for. The spec names this as a mitigation

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { grenz, type ApprovalRequest, type Approver, type GrenzInstance } from "../src/grenz.ts";
 import { __resetForTests } from "../src/takeover.ts";
-import type { GrenzConfig, GrenzDenial, ToolDescriptor } from "../src/types.ts";
+import type { GrenzConfig, GrenzDenial, ToolAction, ToolDescriptor } from "../src/types.ts";
 
 /**
  * A stand-in for the browser's ModelContext, with a real prototype so the
@@ -316,6 +316,77 @@ describe("approval gate", () => {
       expect((await ask(withDescribe(bad), { doorId: "front" })).plain).toBeUndefined();
     });
   }
+
+  // --- changing the rules themselves --------------------------------------
+  //
+  // Relaxing a rule buys every future call at once, so it is the single most
+  // valuable move available to anything that gets control of the page. It goes
+  // through the pipeline rather than around it: loosening asks, tightening
+  // does not, and both directions land in the trail. Before this, the app
+  // assigned straight into the policy object and the one change most worth
+  // seeing was the only one that left no trace.
+
+  function rulesFor(action: ToolAction) {
+    const config: GrenzConfig = {
+      defaultAction: "deny",
+      tools: { unlock_door: { action, effect: "Anyone outside can walk in." } },
+    };
+    return { config, g: grenz(config) };
+  }
+  const policyEvents = (g: GrenzInstance) => g.getTimeline().filter((e) => e.kind === "policy");
+
+  test("relaxing a rule asks first, and applies when approved", async () => {
+    const { config, g } = rulesFor("approve");
+    g.setApprover(async () => ({ granted: true }));
+    expect(await g.changeRule("unlock_door", "allow")).toBe(true);
+    expect(config.tools!.unlock_door!.action).toBe("allow");
+    const e = policyEvents(g).at(-1)!;
+    expect(e.reason).toBe("policy_loosened");
+    expect([e.from, e.to]).toEqual(["approve", "allow"]);
+  });
+
+  test("a denied relaxation leaves the rule exactly where it was", async () => {
+    const { config, g } = rulesFor("approve");
+    g.setApprover(async () => ({ granted: false }));
+    expect(await g.changeRule("unlock_door", "allow")).toBe(false);
+    expect(config.tools!.unlock_door!.action).toBe("approve");
+    // Refusing to change is itself worth recording: it is an attempt.
+    expect(policyEvents(g).at(-1)!.reason).toBe("approval_denied");
+  });
+
+  test("deny to approve counts as loosening", async () => {
+    const { g } = rulesFor("deny");
+    let asked = 0;
+    g.setApprover(async () => {
+      asked++;
+      return { granted: true };
+    });
+    expect(await g.changeRule("unlock_door", "approve")).toBe(true);
+    expect(asked).toBe(1);
+  });
+
+  test("tightening needs no permission, but is still recorded", async () => {
+    const { config, g } = rulesFor("allow");
+    g.setApprover(async () => {
+      throw new Error("tightening must never ask");
+    });
+    expect(await g.changeRule("unlock_door", "deny")).toBe(true);
+    expect(config.tools!.unlock_door!.action).toBe("deny");
+    expect(policyEvents(g).at(-1)!.reason).toBe("policy_tightened");
+  });
+
+  test("a rule that is already what you asked for is not an event", async () => {
+    const { g } = rulesFor("allow");
+    expect(await g.changeRule("unlock_door", "allow")).toBe(false);
+    expect(policyEvents(g)).toHaveLength(0);
+  });
+
+  test("a tool with no policy cannot have one invented by changing it", async () => {
+    const { config, g } = rulesFor("approve");
+    expect(await g.changeRule("finalize_access", "allow")).toBe(false);
+    expect(config.tools!.finalize_access).toBeUndefined();
+    expect(policyEvents(g)).toHaveLength(0);
+  });
 
   test("deny does not", async () => {
     const g = grenz(baseConfig);

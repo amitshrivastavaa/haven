@@ -23,6 +23,7 @@ import type {
   ReasonCode,
   RegisterOptions,
   TimelineEvent,
+  ToolAction,
   ToolDescriptor,
   ToolPolicy,
 } from "./types.ts";
@@ -72,6 +73,24 @@ export interface GrenzInstance {
   revokeSessionGrants(): void;
   /** Swap the approval UI. The demo uses the default shadow-DOM card. */
   setApprover(approver: Approver): void;
+  /**
+   * Change what a tool is allowed to do, through the pipeline rather than
+   * around it.
+   *
+   * Relaxing a rule is the highest-value move available to anything that gets
+   * control of the page: it buys every future call at once, and does it once,
+   * quietly. So loosening asks the human — with the same card a tool call
+   * would raise — and either direction lands in the audit trail.
+   *
+   * This governs the tool surface, which is what an in-page layer can govern.
+   * It is NOT a defence against an agent driving the browser: something with
+   * the user's mouse can click Approve, and no library living inside the page
+   * can stop that. Naming that boundary is the honest thing to do; closing it
+   * is the user agent's job.
+   *
+   * Resolves true when the rule changed.
+   */
+  changeRule(tool: string, action: ToolAction): Promise<boolean>;
 }
 
 const MAX_RESULT_CHARS = 240;
@@ -484,6 +503,73 @@ export function grenz(config: GrenzConfig = {}): GrenzInstance {
     revokeSessionGrants() {
       grants.clear();
     },
+    async changeRule(tool, action) {
+      const policy = config.tools?.[tool];
+      if (!policy || policy.action === action) return false;
+      const from = policy.action;
+
+      // allow > approve > deny. Anything that moves up this ladder gives the
+      // assistant more than it had.
+      const rank: Record<ToolAction, number> = { deny: 0, approve: 1, allow: 2 };
+      const loosening = rank[action] > rank[from];
+
+      if (loosening) {
+        const granted = await new Promise<boolean>((resolve) => {
+          const closer = new AbortController();
+          const ask = approver ?? defaultApprover;
+          ask({
+            tool,
+            title: "Change a house rule",
+            effect:
+              action === "allow"
+                ? `"${tool}" would run from now on without asking you.`
+                : `"${tool}" would go from refused to asking you each time.`,
+            plain: `Let the assistant ${action === "allow" ? "always" : "sometimes"} use ${tool}`,
+            input: { rule: tool, from, to: action },
+            timeoutMs: config.approval?.timeoutMs ?? 60_000,
+            close: closer.signal,
+          })
+            .then((o) => {
+              closer.abort();
+              resolve(o.granted);
+            })
+            .catch(() => {
+              closer.abort();
+              resolve(false);
+            });
+        });
+        if (!granted) {
+          emit({
+            kind: "policy",
+            tool,
+            decision: "deny",
+            reason: "approval_denied",
+            message: `The rule for "${tool}" was left as it was.`,
+            from,
+            to: action,
+          });
+          return false;
+        }
+      }
+
+      // The config's tools are the site's own object and it holds them live —
+      // the same reference its settings screen renders from — so writing here
+      // is what makes the change take effect on the very next call.
+      (policy as { action: ToolAction }).action = action;
+      emit({
+        kind: "policy",
+        tool,
+        decision: loosening ? "deny" : "allow",
+        reason: loosening ? "policy_loosened" : "policy_tightened",
+        message: loosening
+          ? `The rule for "${tool}" was relaxed from "${from}" to "${action}".`
+          : `The rule for "${tool}" was tightened from "${from}" to "${action}".`,
+        from,
+        to: action,
+      });
+      return true;
+    },
+
     setApprover(next) {
       approver = next;
     },

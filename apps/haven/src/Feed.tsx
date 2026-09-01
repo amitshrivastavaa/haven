@@ -34,6 +34,8 @@ const WHY: Record<string, string> = {
   explicit_deny: "A house rule says never.",
   no_matching_allow: "No house rule covers it.",
   annotation_mismatch: "It said it only reads. It writes.",
+  policy_loosened: "You allowed more than before.",
+  policy_tightened: "You allowed less than before.",
   constraint: "It asked for a value your house does not allow.",
   rate_limit: "It has asked too many times, too fast.",
   approval_expired: "Nobody answered, so it was refused.",
@@ -129,6 +131,26 @@ export function toLine(e: TimelineEvent): Line | null {
       ]
         .filter(Boolean)
         .join(" "),
+      technical,
+    };
+  }
+
+  // A rule change is not a call, and reads as neither an allow nor a refusal.
+  // A relaxed rule is the one row here worth alarming about: it is the only
+  // event that changes what every later call is permitted to do.
+  if (e.kind === "policy") {
+    const relaxed = e.reason === "policy_loosened";
+    return {
+      id: e.id,
+      kind: relaxed ? "no" : "eye",
+      title: relaxed
+        ? `A house rule was relaxed: "${e.tool}"`
+        : e.reason === "policy_tightened"
+          ? `A house rule was tightened: "${e.tool}"`
+          : `A house rule was left alone: "${e.tool}"`,
+      detail: relaxed
+        ? `It went from "${e.from}" to "${e.to}". The assistant may now do more than it could.`
+        : e.message,
       technical,
     };
   }

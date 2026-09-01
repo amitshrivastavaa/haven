@@ -1,4 +1,4 @@
-import type { GrenzConfig, ToolAction, ToolPolicy } from "grenz-webmcp";
+import type { GrenzConfig, ToolPolicy } from "grenz-webmcp";
 
 /**
  * Haven's house rules. One object, deny-by-default, written by the site author.
@@ -100,12 +100,6 @@ export const policy: GrenzConfig = {
   tools: rules,
   approval: { timeoutMs: 60_000 },
 };
-
-/** Changes what the assistant may do, from the next call onwards. */
-export function setRuleAction(tool: string, action: ToolAction): void {
-  const rule = rules[tool];
-  if (rule) rule.action = action;
-}
 
 /**
  * The rules, said the way someone who lives here would say them.
