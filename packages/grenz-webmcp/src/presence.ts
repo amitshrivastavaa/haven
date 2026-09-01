@@ -25,12 +25,26 @@
  */
 
 /**
- * Captured at load, before any third-party script on the page has run.
+ * Captured when this module loads — which is NOT as early as the takeover.
  *
- * The same reasoning as the registerTool takeover: an attacker that can replace
- * `navigator.credentials.get` with a function that resolves can satisfy the
- * ceremony without a human. Taking the reference early means a later
- * replacement is not the one we call.
+ * The reasoning is the same as `registerTool`: an attacker who replaces
+ * `navigator.credentials.get` with a function that resolves satisfies the
+ * ceremony with no human, so holding the reference from before a later
+ * replacement is what makes the swap ineffective.
+ *
+ * The load order is worth being exact about, because it is weaker here than it
+ * is for registration. `grenz-install.js` is a classic-script IIFE precisely so
+ * it can run in `<head>` ahead of any third-party tag; it contains no reference
+ * to `credentials`. This module ships in the app's ESM bundle, and module
+ * scripts are always deferred, so these bindings are taken *after* every
+ * synchronous script on the page. A third-party `<script>` that loads after
+ * `grenz-install.js` but before the app bundle can therefore swap
+ * `navigator.credentials.get`, and this capture will faithfully hold the swap.
+ *
+ * Closing that would mean moving the capture into the install IIFE. Until then
+ * the honest claim is narrower: this defeats a replacement made by anything
+ * that arrives after the app — a lazily-injected tag, a widget's callback, an
+ * agent-driven `eval` — and not one made by a script that beat the app to it.
  */
 const nativeGet = globalThis.navigator?.credentials?.get?.bind(navigator.credentials);
 const nativeCreate = globalThis.navigator?.credentials?.create?.bind(navigator.credentials);

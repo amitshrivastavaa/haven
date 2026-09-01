@@ -8,9 +8,9 @@ import type { GrenzConfig, ToolPolicy } from "grenz-webmcp";
  * outright. Nothing infers that from the tool names — the site says so, because
  * the site is the only party that knows which way round the risk runs.
  *
- * The rules are held mutably and read live on every call, so the House rules
- * screen changes what the assistant may do the moment you tap. A policy the
- * resident cannot see or change is not their policy.
+ * The rules are read live on every call and are not editable from the page.
+ * The House rules screen shows them; nothing on the page can loosen them,
+ * because a control that could is a second, weaker way to authorize.
  */
 type Rule = { -readonly [K in keyof ToolPolicy]: ToolPolicy[K] };
 
@@ -120,7 +120,7 @@ export interface RuleCopy {
   group: string;
   /** How the rule reads in the list: a whole sentence, not a label. */
   said: string;
-  /** How it reads when you are changing it: the action, not the permission. */
+  /** The action itself, not the permission: how it reads in the rules list. */
   what: string;
   /** The extra the policy imposes regardless of which of the three is chosen. */
   limit?: string;
