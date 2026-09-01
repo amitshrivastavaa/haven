@@ -105,8 +105,8 @@ export function Simulator({
     <aside className="sim" aria-label="Tool simulator">
       <div className="sim-head">
         <h2>Send a request by hand</h2>
-        <button className="close" onClick={onClose} aria-label="Close simulator">
-          ×
+        <button className="x close" onClick={onClose} aria-label="Close the simulator">
+          ✕
         </button>
       </div>
 

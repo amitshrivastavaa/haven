@@ -413,7 +413,8 @@ body.tech .ev .tk { display: block; }
    stays centred on the whole viewport, which is how the old right-hand inset
    left a dead column beside the panel. */
 #root { transition: padding-bottom .24s cubic-bezier(.2, .8, .3, 1); }
-#root:has(.wrap.with-demo) { padding-bottom: 84px; }
+#root:has(.dock.shut) { padding-bottom: 22px; }        /* clears the pill */
+#root:has(.dock:not(.shut)) { padding-bottom: 60px; }  /* clears the bar */
 @media (prefers-reduced-motion: reduce) { #root { transition: none; } }
 
 .dock {
@@ -453,7 +454,33 @@ body.tech .ev .tk { display: block; }
   white-space: nowrap;
 }
 .dock-tools button:hover { color: var(--text); border-color: var(--faint); }
-.dock-close { width: 33px; height: 33px; padding: 0; font-size: 13px; }
+
+/* One close control for every dismissible surface. The sheet keeps "Done"
+   because it commits an edit; everything else is dismissed, not finished. */
+.x {
+  flex: none; width: 33px; height: 33px; padding: 0; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--panel);
+  font-size: 13px; line-height: 1; color: var(--dim);
+}
+.x:hover { color: var(--text); border-color: var(--faint); }
+
+/* Collapsed: the bar keeps its fixed box but drops its skin, leaving only the
+   handle. pointer-events must be handed back on the button alone, or an
+   invisible full-width strip would eat clicks on the app behind it. */
+.dock.shut { background: none; border-top: none; box-shadow: none; padding: 0 0 14px; pointer-events: none; }
+.dock.shut .dock-row { pointer-events: none; }
+.dock-handle {
+  pointer-events: auto; flex: none; display: inline-flex; align-items: center; gap: 7px;
+  padding: 8px 16px 8px 13px; border-radius: 999px; border: 1px solid var(--line);
+  background: var(--panel); box-shadow: 0 2px 10px -4px rgba(20, 19, 26, .3);
+  font-size: 13px; font-weight: 700; color: var(--text);
+}
+.dock-handle:hover { border-color: var(--faint); }
+.dock-handle.open { box-shadow: none; background: var(--accent); color: var(--on-accent); border-color: transparent; }
+/* One glyph, rotated, so open and shut are the same control in two positions. */
+.dock-handle .chev { font-size: 15px; line-height: 1; transition: transform .2s; transform: translateY(2px); }
+.dock-handle.open .chev { transform: translateY(-2px) rotate(180deg); }
+@media (prefers-reduced-motion: reduce) { .dock-handle .chev { transition: none; } }
 
 /* ============================================================ simulator === */
 .sim {
@@ -464,7 +491,7 @@ body.tech .ev .tk { display: block; }
 }
 .sim-head { display: flex; align-items: center; gap: 14px; padding: 15px 20px; border-bottom: 1px solid var(--line-soft); flex: none; flex-wrap: wrap; }
 .sim-head h2 { margin: 0; font-family: var(--display); font-size: 17px; font-weight: 800; letter-spacing: -.025em; }
-.sim-head .close { margin-left: auto; padding: 7px 14px; border-radius: 9px; border: 1px solid var(--line); font-size: 12.5px; font-weight: 700; }
+.sim-head .close { margin-left: auto; }
 .sim-mode { display: flex; gap: 3px; padding: 3px; border-radius: 9px; background: var(--sunk); border: 1px solid var(--line); }
 .sim-mode button { padding: 6px 12px; border-radius: 7px; font-size: 12px; font-weight: 600; color: var(--faint); }
 .sim-mode button[aria-pressed="true"] { background: var(--panel); color: var(--text); box-shadow: var(--shadow); }
@@ -572,9 +599,8 @@ blockquote cite { display: block; margin-top: 12px; font-size: 12.5px; font-styl
   .head .logo { width: 32px; height: 32px; font-size: 15px; }
   .head h1 { font-size: 20px; }
   .head .sub { font-size: 11.5px; }
-  .nav, .modes { order: 3; }
+  .nav { order: 3; }
   .guard { margin-left: 0; order: 4; }
-  .head > .mode { order: 5; }
   .pitch-hero { padding: 12px 0 28px; }
   .sheet-head, .sheet-body { padding-left: 18px; padding-right: 18px; }
   /* Pills and tools cannot share a row on a phone, so they stack — the pills
@@ -584,7 +610,7 @@ blockquote cite { display: block; margin-top: 12px; font-size: 12.5px; font-styl
   .dock-row { flex-direction: column; align-items: stretch; gap: 8px; }
   .dock-scen { flex: none; }
   .dock-tools { justify-content: flex-end; }
-  #root:has(.wrap.with-demo) { padding-bottom: 132px; }
+  #root:has(.dock:not(.shut)) { padding-bottom: 108px; }
   .rule-choice, .rule-what { min-width: 0; }
   .who { padding: 13px 14px; }
   .sim-body { grid-template-columns: 1fr; }

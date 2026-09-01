@@ -452,7 +452,7 @@ export function App() {
   }
 
   return (
-    <div className={`wrap ${demoOpen ? "with-demo" : ""}`}>
+    <div className="wrap">
       <Head
         webmcp={webmcp}
         polyfilled={polyfilled}
@@ -462,8 +462,6 @@ export function App() {
         view={view}
         onView={setView}
         refused={refused}
-        onDemo={() => setDemoOpen((v) => !v)}
-        demoOpen={demoOpen}
         onPitch={() => setEntered(false)}
       />
 
@@ -558,10 +556,11 @@ export function App() {
       {view === "history" && <History />}
 
       {rulesOpen && <Rules onClose={() => setRulesOpen(false)} />}
-      {demoOpen && (
-        <Demo
+      <Demo
           scenarios={scenarios}
           busy={busy}
+          open={demoOpen}
+          onOpen={() => setDemoOpen(true)}
           onReset={reset}
           // The simulator is a bottom sheet, so it covers the dock rather than
           // fighting it. Leaving the dock open means closing the sheet puts the
@@ -569,7 +568,6 @@ export function App() {
           onSimulator={() => setSimOpen(true)}
           onClose={() => setDemoOpen(false)}
         />
-      )}
       {simOpen && <Simulator g={g} webmcp={webmcp} onClose={() => setSimOpen(false)} />}
     </div>
   );

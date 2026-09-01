@@ -53,7 +53,9 @@ export function Rules({ onClose }: { onClose: () => void }) {
               never do — whoever is asking. Changes apply to its very next request.
             </p>
           </div>
-          <button className="sheet-close" onClick={onClose} aria-label="Close">
+          {/* "Done" rather than an ✕: this sheet commits an edit, so the word
+              is the action. The accessible name is the visible text. */}
+          <button className="sheet-close" onClick={onClose}>
             Done
           </button>
         </div>

@@ -19,6 +19,12 @@ import { useEffect, useState } from "react";
  * house keeps its full width, and you can fire one scenario after another
  * without the layout moving underneath you.
  *
+ * Its own handle opens it. The trigger used to live in the header, eight
+ * hundred pixels from the bar it opened, so the bar read as having arrived
+ * from nowhere — the same reason the simulator feels placed, and it is
+ * launched from here. Collapsed, this is a pill in the bottom corner;
+ * expanded, that pill is the bar's first control. One object, two sizes.
+ *
  * The notes each scenario carries are worth reading, so they are not thrown
  * away with the panel — one line above the pills shows whichever scenario the
  * pointer or keyboard is on, and `title` keeps the same text reachable.
@@ -43,12 +49,16 @@ export interface Scenario {
 export function Demo({
   scenarios,
   busy,
+  open,
+  onOpen,
   onReset,
   onSimulator,
   onClose,
 }: {
   scenarios: Scenario[];
   busy: boolean;
+  open: boolean;
+  onOpen: () => void;
   onReset: () => void;
   onSimulator: () => void;
   onClose: () => void;
@@ -56,12 +66,13 @@ export function Demo({
   const [hint, setHint] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!open) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, [open, onClose]);
 
   /** Hover and focus both drive the hint, so it works without a pointer. */
   const shows = (note: string) => ({
@@ -71,11 +82,35 @@ export function Demo({
     onBlur: () => setHint(null),
   });
 
+  if (!open) {
+    return (
+      <div className="dock shut">
+        <div className="dock-row">
+          <button className="dock-handle" onClick={onOpen} aria-expanded={false}>
+            <span className="chev" aria-hidden="true">
+              ⌃
+            </span>
+            Demo
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="dock" role="complementary" aria-label="Demo">
       <p className="dock-hint">{hint ?? RESTING}</p>
 
       <div className="dock-row">
+        {/* The handle stays put and turns into the close control, so the thing
+            that opened the bar is the thing that shuts it. */}
+        <button className="dock-handle open" onClick={onClose} aria-expanded={true}>
+          <span className="chev" aria-hidden="true">
+            ⌃
+          </span>
+          Demo
+        </button>
+
         <div className="dock-scen">
           {scenarios.map((s) => (
             <button
@@ -97,9 +132,6 @@ export function Demo({
           </button>
           <button onClick={onReset} {...shows("Put the house back the way it started.")}>
             Reset
-          </button>
-          <button className="dock-close" onClick={onClose} aria-label="Close the demo bar">
-            ✕
           </button>
         </div>
       </div>
