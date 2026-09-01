@@ -154,19 +154,6 @@ body.tech .ev .tk { display: block; }
 .rules li.r-ask::before { background: var(--warm); }
 .rules li.r-never::before { background: var(--stop); }
 
-/* Editing a rule uses the same three words the list is written in. */
-.redit { margin-top: 12px; display: flex; flex-direction: column; gap: 12px; }
-.redit-row { border-top: 1px solid var(--line-soft); padding-top: 10px; }
-.redit-row:first-child { border-top: 0; padding-top: 0; }
-.redit-what { font-size: 12.5px; font-weight: 700; color: var(--text); }
-.redit-sub { font-size: 10.5px; font-family: var(--mono); color: var(--faint); margin-bottom: 7px; }
-.redit-pick { display: flex; gap: 3px; padding: 3px; border-radius: 10px; background: var(--sunk); border: 1px solid var(--line); }
-.redit-pick button { flex: 1; padding: 5px 6px; border-radius: 8px; font-size: 11px; font-weight: 700; color: var(--dim); }
-.redit-pick button[aria-pressed="true"] { background: var(--panel); box-shadow: var(--shadow); }
-.redit-pick button.p-allow[aria-pressed="true"] { color: var(--safe); }
-.redit-pick button.p-ask[aria-pressed="true"] { color: var(--warm); }
-.redit-pick button.p-never[aria-pressed="true"] { color: var(--stop); }
-
 /* -------------------------------------------------------------- banner --- */
 .banner {
   grid-column: 1 / -1; display: flex; align-items: center; gap: 10px;
@@ -369,3 +356,67 @@ body.tech .ev .tk { display: block; }
 .fp-ovenstate { fill: #5C6B7C; font-size: 11.5px; font-weight: 600; transition: fill .5s; }
 .fp-oven.hot .fp-ovenlabel, .fp-oven.hot .fp-ovenstate { fill: #FF9B5E; }
 @media (prefers-reduced-motion: reduce) { .fp-oven.hot .fp-heat { animation: none; } }
+
+/* ==========================================================================
+   House rules, full screen.
+
+   The rail card is the summary; this is where a rule is actually changed, and
+   the three words get the width to be read side by side instead of guessed
+   from an abbreviation.
+   ========================================================================== */
+.sheet-veil {
+  position: fixed; inset: 0; z-index: 70; padding: 24px;
+  background: rgba(10, 14, 20, .34); backdrop-filter: blur(3px);
+  display: grid; place-items: center; animation: veil-in .16s ease-out;
+}
+@keyframes veil-in { from { opacity: 0; } }
+.sheet {
+  width: min(760px, 100%); max-height: 100%; display: flex; flex-direction: column;
+  border-radius: 24px; background: var(--panel); border: 1px solid var(--line);
+  box-shadow: var(--shadow-lg); overflow: hidden;
+  animation: sheet-in .28s cubic-bezier(.2, .8, .3, 1);
+}
+@keyframes sheet-in { from { opacity: 0; transform: translateY(12px) scale(.99); } }
+@media (prefers-reduced-motion: reduce) {
+  .sheet-veil, .sheet { animation: none; }
+}
+
+.sheet-head {
+  display: flex; align-items: flex-start; gap: 18px; flex: none;
+  padding: 22px 24px 18px; border-bottom: 1px solid var(--line-soft);
+}
+.sheet-head h1 { margin: 0 0 6px; font-size: 22px; font-weight: 800; letter-spacing: -.03em; }
+.sheet-head p { margin: 0; color: var(--dim); font-size: 13px; line-height: 1.6; max-width: 58ch; }
+.sheet-close {
+  margin-left: auto; flex: none; padding: 9px 18px; border-radius: 11px;
+  background: var(--accent); color: #fff; font-size: 13px; font-weight: 700;
+}
+.sheet-body { overflow-y: auto; padding: 20px 24px 26px; }
+
+.rules-group { margin-bottom: 24px; }
+.rules-group h2 {
+  margin: 0 0 6px; font-size: 11px; font-weight: 800; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--faint);
+}
+.rule {
+  display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+  padding: 13px 0; border-bottom: 1px solid var(--line-soft);
+}
+.rule:last-child { border-bottom: 0; }
+.rule-what { flex: 1; min-width: 190px; }
+.rule-title { display: block; font-size: 14px; font-weight: 700; }
+.rule-sub { display: block; font-size: 11px; color: var(--faint); margin-top: 2px; }
+.rule-sub code { font-family: var(--mono); font-size: 10.5px; }
+
+.rule-choice { display: flex; gap: 3px; padding: 3px; border-radius: 11px; background: var(--sunk); border: 1px solid var(--line); flex: none; }
+.choice {
+  padding: 6px 13px; border-radius: 8px; font-size: 12px; font-weight: 700;
+  color: var(--dim); white-space: nowrap; transition: color .12s, background .12s;
+}
+.choice:hover { color: var(--text); }
+.choice[aria-pressed="true"] { background: var(--panel); box-shadow: var(--shadow); }
+.choice.c-allow[aria-pressed="true"] { color: var(--safe); }
+.choice.c-ask[aria-pressed="true"] { color: var(--warm); }
+.choice.c-never[aria-pressed="true"] { color: var(--stop); }
+
+.rules-foot { margin: 4px 0 0; color: var(--faint); font-size: 12px; line-height: 1.65; max-width: 62ch; }

@@ -1,8 +1,7 @@
 import type { ReactNode } from "react";
-import { useState } from "react";
 import type { ToolAction } from "grenz-webmcp";
 import { SCENES } from "./house";
-import { RULE_COPY, rules, setRuleAction } from "./policy";
+import { RULE_COPY, rules } from "./policy";
 import type { DoorbellEvent, SceneId } from "./types";
 
 export function Head({
@@ -68,22 +67,12 @@ export function Banner({ kind, children }: { kind: "info" | "danger"; children: 
   );
 }
 
-const CHOICES: { action: ToolAction; label: string; cls: string }[] = [
-  { action: "allow", label: "Freely", cls: "p-allow" },
-  { action: "approve", label: "Ask me", cls: "p-ask" },
-  { action: "deny", label: "Never", cls: "p-never" },
-];
-
 /**
- * The rules as a list you read, and — one tap away — a list you change.
- *
- * Two states of one card rather than two screens: the sentence is the same
- * either way, and a rule you can see but not change is not really yours.
+ * The rules at a glance: one sentence each, and a dot for which of the three
+ * kinds it is. Changing one opens the full screen, where the choice has room
+ * to be read rather than guessed from a three-across segmented control.
  */
-export function RulesCard() {
-  const [editing, setEditing] = useState(false);
-  const [, bump] = useState(0);
-
+export function RulesCard({ onEdit }: { onEdit: () => void }) {
   const dot = (a: ToolAction | undefined) => (a === "approve" ? "r-ask" : a === "deny" ? "r-never" : "");
 
   return (
@@ -93,50 +82,18 @@ export function RulesCard() {
           <h2>House rules</h2>
           <p className="lead">What your assistant may do.</p>
         </div>
-        <button className="edit" onClick={() => setEditing((v) => !v)}>
-          {editing ? "Done" : "Change these"}
+        <button className="edit" onClick={onEdit}>
+          Change these
         </button>
       </div>
 
-      {!editing ? (
-        <ul>
-          {RULE_COPY.map((r) => (
-            <li key={r.tool} className={dot(rules[r.tool]?.action)}>
-              {r.said}
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <div className="redit">
-          {RULE_COPY.map((r) => {
-            const current = rules[r.tool]?.action;
-            return (
-              <div key={r.tool} className="redit-row">
-                <div className="redit-what">{r.what}</div>
-                <div className="redit-sub">
-                  {r.tool}
-                  {r.limit ? ` · ${r.limit}` : ""}
-                </div>
-                <div className="redit-pick" role="group" aria-label={r.what}>
-                  {CHOICES.map((c) => (
-                    <button
-                      key={c.action}
-                      className={c.cls}
-                      aria-pressed={current === c.action}
-                      onClick={() => {
-                        setRuleAction(r.tool, c.action);
-                        bump((n) => n + 1);
-                      }}
-                    >
-                      {c.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+      <ul>
+        {RULE_COPY.map((r) => (
+          <li key={r.tool} className={dot(rules[r.tool]?.action)}>
+            {r.said}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

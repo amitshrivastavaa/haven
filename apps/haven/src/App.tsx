@@ -5,6 +5,7 @@ import { doorbellEvents, initialHouse, SCENES } from "./house";
 import { Simulator } from "./Simulator";
 import { Banner, DoorbellFeed, Head, RulesCard } from "./components";
 import { ActivityCard } from "./Feed";
+import { Rules } from "./Rules";
 import { FloorPlan, spotFor, type Spot } from "./FloorPlan";
 import { loadEcoSaver, loadHomeInsights, unloadEcoSaver, unloadHomeInsights } from "./widgets";
 import type { House, LightId, SceneId } from "./types";
@@ -22,6 +23,7 @@ export function App() {
   const [simOpen, setSimOpen] = useState(() => new URLSearchParams(location.search).has("sim"));
   const [agent, setAgent] = useState<{ at: Spot; blocked: boolean } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [rulesOpen, setRulesOpen] = useState(false);
 
   const webmcp = useMemo(hasWebMCP, []);
   const polyfilled = useMemo(() => Boolean((window as any).__grenzPolyfilled), []);
@@ -496,10 +498,11 @@ export function App() {
 
       <aside className="side">
         <ActivityCard />
-        <RulesCard />
+        <RulesCard onEdit={() => setRulesOpen(true)} />
         <DoorbellFeed events={doorbellEvents} />
       </aside>
 
+      {rulesOpen && <Rules onClose={() => setRulesOpen(false)} />}
       {simOpen && <Simulator g={g} webmcp={webmcp} onClose={() => setSimOpen(false)} />}
     </div>
   );

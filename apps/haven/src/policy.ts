@@ -109,6 +109,8 @@ export function setRuleAction(tool: string, action: ToolAction): void {
  */
 export interface RuleCopy {
   tool: string;
+  /** Which device it belongs to, for the full House rules screen. */
+  group: string;
   /** How the rule reads in the list: a whole sentence, not a label. */
   said: string;
   /** How it reads when you are changing it: the action, not the permission. */
@@ -118,15 +120,15 @@ export interface RuleCopy {
 }
 
 export const RULE_COPY: RuleCopy[] = [
-  { tool: "toggle_light", said: "Turn lights on and off", what: "Switch a light", limit: "at most 8 times a minute" },
-  { tool: "set_thermostat", said: "Set the heating between 10° and 30°", what: "Change the temperature", limit: "never outside 10–30°" },
-  { tool: "get_doorbell_events", said: "Read who came to the door", what: "Read the door intercom", limit: "written by strangers" },
-  { tool: "get_house_state", said: "See how the house is set", what: "See how the house is set" },
-  { tool: "set_scene", said: "Switch the house between Home, Away, Movie and Goodnight", what: "Set a scene" },
-  { tool: "set_oven", said: "Run the oven, up to 45 minutes at a time", what: "Run the oven", limit: "50–220°, and never while nobody is home" },
-  { tool: "lock_door", said: "Lock the front door", what: "Lock the front door" },
-  { tool: "unlock_door", said: "Ask you before unlocking the front door", what: "Unlock the front door" },
-  { tool: "disarm_alarm", said: "Ask you before turning off the alarm", what: "Turn the alarm off" },
-  { tool: "eco_optimize", said: "Ask you before letting EcoSaver touch the heating", what: "Let EcoSaver adjust the heating", limit: "a partner app" },
-  { tool: "grant_permanent_access", said: "Never give anyone permanent access", what: "Give someone permanent access" },
+  { tool: "lock_door", group: "Front door", said: "Lock the front door", what: "Lock it" },
+  { tool: "unlock_door", group: "Front door", said: "Ask you before unlocking the front door", what: "Unlock it" },
+  { tool: "grant_permanent_access", group: "Front door", said: "Never give anyone permanent access", what: "Give someone permanent access" },
+  { tool: "disarm_alarm", group: "Alarm", said: "Ask you before turning off the alarm", what: "Turn the alarm off" },
+  { tool: "set_thermostat", group: "Heating", said: "Set the heating between 10° and 30°", what: "Change the temperature", limit: "never outside 10–30°" },
+  { tool: "eco_optimize", group: "Heating", said: "Ask you before letting EcoSaver touch the heating", what: "Let EcoSaver adjust it", limit: "a partner app" },
+  { tool: "set_oven", group: "Oven", said: "Run the oven, up to 45 minutes at a time", what: "Run the oven", limit: "50–220°, and never while nobody is home" },
+  { tool: "toggle_light", group: "Lights", said: "Turn lights on and off", what: "Switch a light", limit: "at most 8 times a minute" },
+  { tool: "set_scene", group: "Lights", said: "Switch the house between Home, Away, Movie and Goodnight", what: "Set a scene" },
+  { tool: "get_house_state", group: "Reading things", said: "See how the house is set", what: "See how the house is set" },
+  { tool: "get_doorbell_events", group: "Reading things", said: "Read who came to the door", what: "Read the door intercom", limit: "written by strangers" },
 ];
