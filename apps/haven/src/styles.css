@@ -402,10 +402,18 @@ body.tech .ev .tk { display: block; }
 /* ================================================================= demo === */
 /* No veil. A scenario is worth running because you watch the house answer it,
    and a dimmed, blurred house answers nothing. The panel sits beside the app
-   and the shell makes room for it. */
-.wrap.with-demo { transition: padding-right .26s cubic-bezier(.2, .8, .3, 1); }
-@media (min-width: 1180px) { .wrap.with-demo { padding-right: 462px; } }
-@media (prefers-reduced-motion: reduce) { .wrap.with-demo { transition: none; } }
+   and the shell makes room for it.
+
+   The inset goes on the shell, not on .wrap. .wrap is `max-width: 1320px;
+   margin: 0 auto`, so padding-right shrank the content inside a box that
+   stayed centred on the whole viewport — the app slid left and left a dead
+   column between itself and the panel. Insetting the parent narrows the space
+   the auto margins centre within, so the app just re-centres, full width, in
+   what is left. :has() rather than a body class: the state already lives on
+   .wrap, and one selector beats threading it through React. */
+#root { transition: padding-right .26s cubic-bezier(.2, .8, .3, 1); }
+@media (min-width: 1180px) { #root:has(.wrap.with-demo) { padding-right: 430px; } }
+@media (prefers-reduced-motion: reduce) { #root { transition: none; } }
 .demo {
   position: fixed; top: 0; right: 0; bottom: 0; z-index: 61; width: min(430px, 100%);
   background: var(--panel); border-left: 1px solid var(--line);
@@ -413,7 +421,7 @@ body.tech .ev .tk { display: block; }
   animation: slidein .26s cubic-bezier(.2, .8, .3, 1);
 }
 @keyframes slidein { from { transform: translateX(24px); opacity: 0; } }
-@media (prefers-reduced-motion: reduce) { .demo, .demo-veil { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .demo { animation: none; } }
 .demo-head { padding: 22px 22px 16px; border-bottom: 1px solid var(--line-soft); flex: none; }
 .demo-head .row { display: flex; align-items: flex-start; gap: 14px; }
 .demo-head h2 { margin: 0; font-family: var(--display); font-size: 20px; font-weight: 800; letter-spacing: -.03em; flex: 1; }
