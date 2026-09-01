@@ -24,6 +24,7 @@ import type {
   RegisterOptions,
   TimelineEvent,
   ToolDescriptor,
+  ToolPolicy,
 } from "./types.ts";
 
 export interface ApprovalRequest {
@@ -31,6 +32,11 @@ export interface ApprovalRequest {
   readonly title: string;
   /** The site-declared consequence. The most important string on the card. */
   readonly effect: string;
+  /**
+   * The site's phrasing of this exact call, when its policy supplied one.
+   * Absent means the card shows the raw arguments instead — never nothing.
+   */
+  readonly plain?: string;
   readonly input: unknown;
   readonly timeoutMs: number;
   /** Aborts when the request is resolved elsewhere (timeout, agent hang-up). */
@@ -260,6 +266,24 @@ export function grenz(config: GrenzConfig = {}): GrenzInstance {
     }
   }
 
+  /**
+   * A site's `describe` is ordinary application code and can throw or return
+   * junk. It runs on the path to a security prompt, so a bad one must degrade
+   * to the raw arguments rather than take the card down with it.
+   */
+  function describeInput(
+    describe: ToolPolicy["describe"],
+    input: unknown,
+  ): string | undefined {
+    if (!describe || input === null || typeof input !== "object") return undefined;
+    try {
+      const text = describe(input as Record<string, unknown>);
+      return typeof text === "string" && text.trim() ? text : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
   async function requestApproval(
     entry: RegistryEntry,
     input: unknown,
@@ -301,6 +325,7 @@ export function grenz(config: GrenzConfig = {}): GrenzInstance {
           tool: entry.name,
           title: entry.title,
           effect,
+          plain: describeInput(config.tools?.[entry.name]?.describe, input),
           input,
           timeoutMs,
           close: closer.signal,

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { grenz, type Approver, type GrenzInstance } from "../src/grenz.ts";
+import { grenz, type ApprovalRequest, type Approver, type GrenzInstance } from "../src/grenz.ts";
 import { __resetForTests } from "../src/takeover.ts";
 import type { GrenzConfig, GrenzDenial, ToolDescriptor } from "../src/types.ts";
 
@@ -248,6 +248,74 @@ describe("approval gate", () => {
     expect(submitted).toEqual(["door-7"]);
     expect(g.getTimeline().findLast((e) => e.kind === "call")!.reason).toBe("approval_granted");
   });
+
+  // --- the site's own words for the request -------------------------------
+  //
+  // The card is read by a resident, so the site gets to phrase the call. What
+  // it must never do is take the card down: `describe` is ordinary app code
+  // sitting on the path to a security prompt, so anything it does wrong has to
+  // degrade to showing the arguments as they arrived.
+
+  const withDescribe = (describe: unknown): GrenzConfig => ({
+    ...baseConfig,
+    tools: {
+      ...baseConfig.tools,
+      unlock_door: { ...baseConfig.tools!.unlock_door, describe },
+    } as GrenzConfig["tools"],
+  });
+
+  /** Runs one call and hands back the request the card would have been given. */
+  async function ask(config: GrenzConfig, input: unknown): Promise<ApprovalRequest> {
+    const g = grenz(config);
+    let seen: ApprovalRequest | undefined;
+    // setup() installs its own approver, so ours goes on afterwards.
+    await setup(g, async () => ({ granted: false }));
+    g.setApprover(async (r) => {
+      seen = r;
+      return { granted: false };
+    });
+    await g.callTool("unlock_door", input);
+    if (!seen) throw new Error("the approver was never asked");
+    return seen;
+  }
+
+  test("the site's phrasing reaches the card and reflects the arguments", async () => {
+    const r = await ask(
+      withDescribe(({ doorId }: Record<string, unknown>) => `Unlock the ${doorId} door`),
+      { doorId: "back" },
+    );
+    expect(r.plain).toBe("Unlock the back door");
+    // The literal arguments still travel with the request, so nothing is lost:
+    // a host that wants to show them still can.
+    expect(r.input).toEqual({ doorId: "back" });
+  });
+
+  test("no describe means no phrasing, so the card falls back to the arguments", async () => {
+    expect((await ask(baseConfig, { doorId: "front" })).plain).toBeUndefined();
+  });
+
+  test("a describe that throws does not take the card down", async () => {
+    const r = await ask(
+      withDescribe(() => {
+        throw new Error("site bug");
+      }),
+      { doorId: "front" },
+    );
+    expect(r.plain).toBeUndefined();
+  });
+
+  // One test each rather than a loop: the takeover registry is reset per test,
+  // so four calls in one body would be re-registering into a dirty one.
+  for (const [what, bad] of [
+    ["an empty string", () => ""],
+    ["only whitespace", () => "   "],
+    ["undefined", () => undefined],
+    ["a non-string", () => 42],
+  ] as const) {
+    test(`a describe that returns ${what} is treated as absent`, async () => {
+      expect((await ask(withDescribe(bad), { doorId: "front" })).plain).toBeUndefined();
+    });
+  }
 
   test("deny does not", async () => {
     const g = grenz(baseConfig);

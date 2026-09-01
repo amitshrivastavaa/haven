@@ -76,6 +76,43 @@ function prettyArgs(input: unknown): string {
   }
 }
 
+/**
+ * The arguments, as rows rather than a JSON blob.
+ *
+ * Showing the literal request is the point of this section: the line above it
+ * is what the SITE says the tool does, and this is what the agent actually
+ * asked for. A summary here would be the hole the card exists to close, so
+ * every key and every value survives verbatim — only the braces and quotes go.
+ * The person deciding whether to unlock their own front door is not reading
+ * JSON.
+ *
+ * Values are composed by the agent, so they are inserted as text and never as
+ * markup. Nested shapes stay JSON: flattening them would drop structure the
+ * reader may need in order to judge the request.
+ */
+function argsNode(input: unknown): HTMLElement {
+  if (input === undefined || input === null) return el("p", "args-none", "No arguments.");
+
+  // Anything that is not a bag of named arguments has no rows to make, so it
+  // falls back rather than being guessed at.
+  if (typeof input !== "object" || Array.isArray(input))
+    return el("pre", "args-raw", prettyArgs(input));
+
+  const entries = Object.entries(input as Record<string, unknown>);
+  if (entries.length === 0) return el("p", "args-none", "No arguments.");
+
+  const list = el("dl", "args");
+  for (const [key, value] of entries) {
+    list.append(
+      el("dt", undefined, key),
+      el("dd", undefined, value !== null && typeof value === "object"
+        ? prettyArgs(value)
+        : String(value)),
+    );
+  }
+  return list;
+}
+
 // ---------------------------------------------------------------------------
 // Approval card
 // ---------------------------------------------------------------------------
@@ -119,7 +156,20 @@ const CARD_CSS = `
   }
   .effect svg { flex: none; margin-top: 1px }
   .args-label { font-size: 11px; font-weight: 650; letter-spacing: .05em; text-transform: uppercase; color: var(--g-dim); margin-bottom: 6px }
-  pre.args {
+  dl.args {
+    display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 7px 18px;
+    margin: 0 0 16px; padding: 12px 14px; border-radius: 10px;
+    background: var(--g-surface); border: 1px solid var(--g-line);
+    max-height: 190px; overflow: auto;
+  }
+  dl.args dt { font-size: 12.5px; font-weight: 650; color: var(--g-dim) }
+  /* Mono on the value only: it is the agent's own text, shown unaltered. */
+  dl.args dd {
+    margin: 0; font-family: var(--g-mono); font-size: 12.5px; line-height: 1.45;
+    color: var(--g-text); white-space: pre-wrap; word-break: break-word;
+  }
+  .args-none { margin: 0 0 16px; font-size: 13px; color: var(--g-dim) }
+  pre.args-raw {
     margin: 0 0 16px; padding: 12px; border-radius: 10px;
     background: var(--g-surface); border: 1px solid var(--g-line);
     font-family: var(--g-mono); font-size: 12.5px; line-height: 1.5;
@@ -179,10 +229,12 @@ function showCard(request: ApprovalRequest): Promise<ApprovalOutcome> {
     const body = el("div", "body");
     body.append(el("p", "ask", "Your assistant is asking to do something in your home."));
 
-    const tool = el("h2", "tool");
+    // The site's phrasing of this call when there is one, its title for the
+    // tool otherwise. The machine name used to sit here in mono; it told the
+    // resident nothing they could act on, and the audit trail carries it.
+    const tool = el("h2", "tool", request.plain ?? request.title);
     tool.id = "g-tool";
-    tool.append(document.createTextNode(`${request.title} `));
-    tool.append(el("code", undefined, request.tool));
+    tool.title = request.tool;
     body.append(tool);
 
     const effect = el("div", "effect");
@@ -190,8 +242,13 @@ function showCard(request: ApprovalRequest): Promise<ApprovalOutcome> {
     effect.append(el("span", undefined, request.effect));
     body.append(effect);
 
-    body.append(el("div", "args-label", "Exactly what it asked for"));
-    body.append(el("pre", "args", prettyArgs(request.input)));
+    // Only when the site did not phrase the call. Showing both would be the
+    // same request twice, once in words and once in keys — but dropping this
+    // block unconditionally would hide arguments no one had put into words.
+    if (request.plain === undefined) {
+      body.append(el("div", "args-label", "Exactly what it asked for"));
+      body.append(argsNode(request.input));
+    }
 
     const remember = el("label", "remember");
     const checkbox = document.createElement("input");

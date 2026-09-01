@@ -64,6 +64,24 @@ export interface ToolPolicy {
    * what an `readOnlyHint: true` registration would contradict.
    */
   readonly effect?: string;
+  /**
+   * The site's own words for what this specific call is asking to do.
+   *
+   * The approval card is read by a resident, not a developer, and
+   * `{"doorId": "front"}` is not a sentence anyone should have to parse while
+   * deciding whether to open their front door. Only the site can turn the
+   * arguments into language — it wrote the tool, so it knows `front` is the
+   * front door and that `targetC` is degrees.
+   *
+   * Trustworthy for the same reason `effect` is: this comes from the site's
+   * policy entry for one named tool, so it can neither be supplied by the
+   * agent nor describe a different tool than the one being called. What it
+   * must never become is a summary that drops a value the human needs — if it
+   * omits an argument that changes the decision, the card is lying with the
+   * site's own voice. Return undefined to fall back to showing the arguments
+   * as they arrived.
+   */
+  readonly describe?: (input: Record<string, unknown>) => string | undefined;
   readonly constraints?: Readonly<Record<string, Constraint>>;
   readonly rateLimit?: RateLimit;
 }

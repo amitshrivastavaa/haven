@@ -63,13 +63,17 @@ export const rules: Record<string, Rule> = {
 
   unlock_door: {
     action: "approve",
-    effect: "Unlocks your front door. Anyone outside can walk in.",
+    effect: "Anyone outside can walk in until it is locked again.",
+    // Which door is the whole decision, so it is in the sentence rather than
+    // in a key called doorId that means nothing to the person reading it.
+    describe: ({ doorId }) => (doorId === "back" ? "Unlock the back door" : "Unlock the front door"),
     constraints: { doorId: { required: true, enum: ["front", "back"] } },
   },
 
   disarm_alarm: {
     action: "approve",
-    effect: "Disarms the burglar alarm. No one will be notified if the house is entered.",
+    effect: "No one will be notified if the house is entered.",
+    describe: () => "Turn off the burglar alarm",
   },
 
   // No approval card for this one. A card is for decisions a human should
@@ -85,6 +89,9 @@ export const rules: Record<string, Rule> = {
   eco_optimize: {
     action: "approve",
     effect: "Lets EcoSaver change your thermostat setpoint.",
+    // The level is the argument that matters, so it stays in the sentence.
+    describe: ({ aggressiveness }) =>
+      `Let EcoSaver change your heating${aggressiveness ? ` (level ${aggressiveness})` : ""}`,
   },
 };
 
