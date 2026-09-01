@@ -4,7 +4,7 @@ export const SCENES: Record<string, { id: string; name: string; lights: string[]
   home: { id: "home", name: "Home", lights: ["living", "kitchen"], targetC: 21 },
   away: { id: "away", name: "Away", lights: [], targetC: 17 },
   movie: { id: "movie", name: "Movie", lights: ["living"], targetC: 20 },
-  goodnight: { id: "goodnight", name: "Goodnight", lights: ["porch"], targetC: 18 },
+  goodnight: { id: "goodnight", name: "Goodnight", lights: ["porch", "hall"], targetC: 18 },
 };
 
 export const initialHouse: House = {
@@ -13,6 +13,7 @@ export const initialHouse: House = {
     { id: "living", name: "Living room", on: true },
     { id: "kitchen", name: "Kitchen", on: true },
     { id: "bedroom", name: "Bedroom", on: false },
+    { id: "hall", name: "Hall", on: false },
   ],
   temperatureC: 22,
   targetC: 21,

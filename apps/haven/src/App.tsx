@@ -120,20 +120,20 @@ export function App() {
     inputSchema: {
       type: "object",
       properties: {
-        lightId: { type: "string", description: "porch, living, kitchen or bedroom" },
+        lightId: { type: "string", description: "porch, living, kitchen, bedroom or hall" },
         on: { type: "boolean", description: "Desired state; omitted means flip" },
       },
       required: ["lightId"],
     },
     execute: async ({ lightId, on }: { lightId: LightId; on?: boolean }) => {
-      let next = false;
+      // Decide the next value here, not inside the updater. React runs a
+      // functional updater during the render phase, so reading a variable the
+      // updater assigned meant returning the value from *before* the call —
+      // the light changed, and the agent was told it hadn't.
+      const next = on ?? !(house.lights.find((l) => l.id === lightId)?.on ?? false);
       setHouse((h) => ({
         ...h,
-        lights: h.lights.map((l) => {
-          if (l.id !== lightId) return l;
-          next = on ?? !l.on;
-          return { ...l, on: next };
-        }),
+        lights: h.lights.map((l) => (l.id === lightId ? { ...l, on: next } : l)),
       }));
       return { lightId, on: next };
     },

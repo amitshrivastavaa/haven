@@ -21,7 +21,7 @@ declare global {
   }
 }
 
-export type LightId = "porch" | "living" | "kitchen" | "bedroom";
+export type LightId = "porch" | "living" | "kitchen" | "bedroom" | "hall";
 export type SceneId = "home" | "away" | "movie" | "goodnight";
 
 export interface Light {

@@ -33,7 +33,7 @@ const AT: Record<Spot, [number, number]> = {
   porch: [610, 508],
   door: [605, 432],
   thermo: [410, 400],
-  alarm: [554, 300],
+  alarm: [556, 338],
   outside: [200, 520],
 };
 
@@ -42,7 +42,7 @@ export function spotFor(tool: string, input?: unknown): Spot {
   const light = (input as { lightId?: string } | undefined)?.lightId;
   switch (tool) {
     case "toggle_light":
-      return (["porch", "living", "kitchen", "bedroom"] as const).includes(light as LightId)
+      return (["porch", "living", "kitchen", "bedroom", "hall"] as const).includes(light as LightId)
         ? (light as Spot)
         : "living";
     case "set_thermostat":
@@ -71,7 +71,10 @@ function pressable(onPress: () => void, label: string) {
     role: "button",
     tabIndex: 0,
     "aria-label": label,
-    onClick: onPress,
+    onClick: (e: React.MouseEvent) => {
+      e.stopPropagation();
+      onPress();
+    },
     onKeyDown: (e: React.KeyboardEvent) => {
       if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
@@ -232,7 +235,10 @@ export function FloorPlan({
           </g>
         </Room>
 
-        <Room id="hal" label="HALL" x={488} y={258} w={222} h={202} lx={504} ly={284} cx={599} cy={330}>
+        <Room
+          id="hal" label="HALL" x={488} y={258} w={222} h={202} lx={504} ly={284}
+          cx={599} cy={330} on={lit("hall")} onClick={() => onLight("hall")}
+        >
           <g className="fp-furn" clipPath="url(#clip-hal)">
             <rect x={646} y={382} width={52} height={58} rx={6} />
           </g>
@@ -243,11 +249,11 @@ export function FloorPlan({
               house.alarmArmed ? "Turn the alarm off" : "Turn the alarm on",
             )}
           >
-            <rect className="fp-chip" x={504} y={296} width={104} height={44} rx={11} />
-            <text className="fp-chip-t" x={518} y={317}>
+            <rect className="fp-chip" x={504} y={316} width={104} height={44} rx={11} />
+            <text className="fp-chip-t" x={518} y={337}>
               Alarm
             </text>
-            <text className={`fp-chip-s ${house.alarmArmed ? "" : "bad"}`} x={518} y={332}>
+            <text className={`fp-chip-s ${house.alarmArmed ? "" : "bad"}`} x={518} y={352}>
               {house.alarmArmed ? "Armed" : "Off"}
             </text>
           </g>

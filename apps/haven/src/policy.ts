@@ -37,7 +37,7 @@ export const rules: Record<string, Rule> = {
     // This is a guardrail against a runaway, not against an attacker.
     rateLimit: { calls: 8, per: "minute" },
     constraints: {
-      lightId: { required: true, enum: ["porch", "living", "kitchen", "bedroom"] },
+      lightId: { required: true, enum: ["porch", "living", "kitchen", "bedroom", "hall"] },
     },
   },
 
