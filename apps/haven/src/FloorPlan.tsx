@@ -216,21 +216,25 @@ export function FloorPlan({
             <rect x={66} y={382} width={152} height={18} rx={9} />
             <rect x={252} y={320} width={96} height={34} rx={5} />
           </g>
+          {/* Inset 16 from the room's right wall, which is what the label, the
+              furniture and the kitchen's oven all use. This sat flush against
+              it, so the control read as part of the wall rather than a thing
+              standing in the room. */}
           <g onClick={(e) => e.stopPropagation()}>
-            <rect className="fp-chip" x={330} y={370} width={150} height={62} rx={13} />
+            <rect className="fp-chip" x={314} y={370} width={150} height={62} rx={13} />
             <g className="fp-step" {...pressable(() => onTarget(house.targetC - 1), "Turn the heating down")}>
-              <circle cx={352} cy={401} r={15} />
-              <path d="M344 401 h16" />
+              <circle cx={336} cy={401} r={15} />
+              <path d="M328 401 h16" />
             </g>
-            <text className="fp-chip-t fp-temp" x={405} y={399} textAnchor="middle">
+            <text className="fp-chip-t fp-temp" x={389} y={399} textAnchor="middle">
               {house.targetC}°
             </text>
-            <text className="fp-chip-s" x={405} y={417} textAnchor="middle">
+            <text className="fp-chip-s" x={389} y={417} textAnchor="middle">
               now {house.temperatureC}°
             </text>
             <g className="fp-step" {...pressable(() => onTarget(house.targetC + 1), "Turn the heating up")}>
-              <circle cx={458} cy={401} r={15} />
-              <path d="M450 401 h16 M458 393 v16" />
+              <circle cx={442} cy={401} r={15} />
+              <path d="M434 401 h16 M442 393 v16" />
             </g>
           </g>
         </Room>
