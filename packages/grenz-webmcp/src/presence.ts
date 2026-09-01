@@ -34,6 +34,20 @@
  */
 const nativeGet = globalThis.navigator?.credentials?.get?.bind(navigator.credentials);
 const nativeCreate = globalThis.navigator?.credentials?.create?.bind(navigator.credentials);
+/**
+ * Captured for the same reason, and easy to miss: this one is not how the
+ * ceremony is satisfied, it is how the ceremony is *skipped*. A `preferred`
+ * policy falls back to a plain click when no authenticator is available, so a
+ * script that can make this answer `false` has switched the passkey off — and
+ * the fallback then reports "unavailable", which reads like a tired laptop
+ * rather than an attack. Reading it live let page script disarm the strongest
+ * check on the site without ever touching the check itself.
+ */
+const nativeAvailable = (
+  globalThis.PublicKeyCredential as unknown as {
+    isUserVerifyingPlatformAuthenticatorAvailable?: () => Promise<boolean>;
+  }
+)?.isUserVerifyingPlatformAuthenticatorAvailable?.bind(globalThis.PublicKeyCredential);
 
 const STORE = "grenz.presence.credential";
 const RP_NAME = "Grenz";
@@ -129,14 +143,9 @@ function remember(id: string): void {
 
 /** Whether asking is even possible here, so a card can say so before it asks. */
 export async function presenceAvailable(): Promise<boolean> {
-  if (!nativeGet || !nativeCreate) return false;
+  if (!nativeGet || !nativeCreate || !nativeAvailable) return false;
   try {
-    const check = (
-      globalThis.PublicKeyCredential as unknown as {
-        isUserVerifyingPlatformAuthenticatorAvailable?: () => Promise<boolean>;
-      }
-    )?.isUserVerifyingPlatformAuthenticatorAvailable;
-    return check ? await check.call(globalThis.PublicKeyCredential) : false;
+    return await nativeAvailable();
   } catch {
     return false;
   }

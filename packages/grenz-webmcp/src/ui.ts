@@ -251,11 +251,19 @@ function showCard(request: ApprovalRequest): Promise<ApprovalOutcome> {
       body.append(argsNode(request.input));
     }
 
-    const remember = el("label", "remember");
+    // Not offered when the policy wants a person proved: the pipeline refuses
+    // to store that grant, and a checkbox that quietly does nothing is worse
+    // than no checkbox. "Every time" is the honest answer for a front door.
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
-    remember.append(checkbox, el("span", undefined, "Approve this tool for the rest of the session"));
-    body.append(remember);
+    if (!request.presence) {
+      const remember = el("label", "remember");
+      remember.append(
+        checkbox,
+        el("span", undefined, "Approve this tool for the rest of the session"),
+      );
+      body.append(remember);
+    }
 
     const actions = el("div", "actions");
     const denyBtn = el("button", "deny", "Deny");
@@ -309,7 +317,9 @@ function showCard(request: ApprovalRequest): Promise<ApprovalOutcome> {
         void approve();
       } else if (e.key === "Tab") {
         // Minimal focus trap: keep Tab inside the card.
-        const focusables = [denyBtn, approveBtn, checkbox];
+        // Filtered, not hard-coded: the checkbox is absent on a presence-gated
+        // card, and a Tab stop on a detached node is a dead key.
+        const focusables = [denyBtn, approveBtn, checkbox].filter((n) => n.isConnected);
         const idx = focusables.indexOf(root.activeElement as HTMLElement & never);
         const nextIdx = (idx + (e.shiftKey ? -1 : 1) + focusables.length) % focusables.length;
         e.preventDefault();

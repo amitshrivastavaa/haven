@@ -317,6 +317,40 @@ describe("approval gate", () => {
     });
   }
 
+  // A `presence` policy says a person must be proved here, for this call. A
+  // session grant says later calls have no person at all. Letting the checkbox
+  // beside the strongest check on the site retire it was the whole bug.
+  test("a tool that wants a person proved cannot be granted for the session", async () => {
+    const config: GrenzConfig = {
+      ...baseConfig,
+      tools: { unlock_door: { action: "approve", presence: "preferred", effect: "Opens." } },
+    };
+    const g = grenz(config);
+    let asked = 0;
+    await setup(g, async () => {
+      asked++;
+      return { granted: true, remember: true };
+    });
+    await g.callTool("unlock_door", {});
+    await g.callTool("unlock_door", {});
+    // Asked both times: the grant was refused, so the second call is not free.
+    expect(asked).toBe(2);
+    expect(g.sessionGrants()).toEqual([]);
+  });
+
+  test("a tool with no presence requirement still remembers a grant", async () => {
+    const g = grenz(baseConfig);
+    let asked = 0;
+    await setup(g, async () => {
+      asked++;
+      return { granted: true, remember: true };
+    });
+    await g.callTool("unlock_door", {});
+    await g.callTool("unlock_door", {});
+    expect(asked).toBe(1);
+    expect(g.sessionGrants()).toEqual(["unlock_door"]);
+  });
+
   test("deny does not", async () => {
     const g = grenz(baseConfig);
     await setup(g, async () => ({ granted: false }));

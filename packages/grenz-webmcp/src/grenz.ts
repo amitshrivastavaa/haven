@@ -369,7 +369,12 @@ export function grenz(config: GrenzConfig = {}): GrenzInstance {
       },
     );
 
-    if (outcome.granted && outcome.remember) {
+    // A presence policy says a person must be proved here, for this call. A
+    // session grant says later calls have no person at all, so the two cannot
+    // both hold — and a checkbox beside the strongest check on the site must
+    // not be able to retire it. Enforced here rather than only in the card,
+    // because `setApprover` lets a site supply its own.
+    if (outcome.granted && outcome.remember && !config.tools?.[entry.name]?.presence) {
       grants.add(entry.name);
       emit({
         kind: "grant",
