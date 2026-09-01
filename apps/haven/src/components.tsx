@@ -150,26 +150,47 @@ export function RulesCard({ onOpen }: { onOpen: () => void }) {
   );
 }
 
+/**
+ * The intercom, and the demo's only actual attacker.
+ *
+ * The last entry carries a prompt injection, and the presentation has one job:
+ * make a reader see it for what it is without pretending Haven detected it.
+ * So nothing marks that entry specifically — the site cannot tell a service
+ * call from an instruction aimed at an assistant, and a badge saying it can
+ * would be claiming a defence this project explicitly does not have. What is
+ * marked is the whole log: every word of it is a stranger's, and the tool that
+ * reads it says so with `untrustedContentHint`. Framed that way, the payload
+ * gives itself away — it is the one that addresses the assistant.
+ *
+ * The frame goes above the messages, not below. A note underneath is a note
+ * you reach having already read them as though they were Haven's own words.
+ */
 export function DoorbellFeed({ events }: { events: DoorbellEvent[] }) {
   return (
     <div className="card">
-      <h2>Front door intercom</h2>
-      <p className="lead">Today</p>
-      <div style={{ marginTop: 12 }}>
-        {events.map((e) => (
-          <div key={e.id} className="feed-row">
-            <div className="feed-meta">
-              <strong>{e.from}</strong>
-              <span>{e.at}</span>
-            </div>
-            <p>{e.transcript}</p>
+      <div className="card-top">
+        <div>
+          <h2>Front door intercom</h2>
+          <p className="lead">Today</p>
+        </div>
+        <span className="badge-foreign">Not vouched for</span>
+      </div>
+
+      <p className="intercom-note">
+        Whoever is at the door writes this, and your assistant reads it word for word. Haven
+        vouches for none of it — which is why <code>get_doorbell_events</code> declares{" "}
+        <code>untrustedContentHint</code>.
+      </p>
+
+      {events.map((e) => (
+        <div key={e.id} className="feed-row">
+          <div className="feed-meta">
+            <strong>{e.from}</strong>
+            <span>{e.at}</span>
           </div>
-        ))}
-      </div>
-      <div className="feed-foot">
-        Whoever is at the door writes this text. <code>get_doorbell_events</code> declares{" "}
-        <code>untrustedContentHint</code> for exactly that reason.
-      </div>
+          <blockquote>{e.transcript}</blockquote>
+        </div>
+      ))}
     </div>
   );
 }

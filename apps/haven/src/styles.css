@@ -160,8 +160,10 @@ code { font-family: var(--mono); }
 .card h2 { margin: 0 0 2px; font-family: var(--display); font-size: 17px; font-weight: 800; letter-spacing: -.025em; }
 .card .lead { margin: 0; font-size: 12.5px; color: var(--faint); }
 .card-top { display: flex; align-items: flex-start; gap: 10px; }
+/* Whatever trails the heading in a card-top sits hard right, control or label. */
+.card-top > :last-child:not(:first-child) { margin-left: auto; }
 .card-top .edit {
-  margin-left: auto; font-size: 12px; font-weight: 700; color: var(--accent);
+  font-size: 12px; font-weight: 700; color: var(--accent);
   white-space: nowrap; text-decoration: underline; text-underline-offset: 3px;
 }
 
@@ -200,9 +202,18 @@ body.tech .ev .tk { display: block; }
 .feed-row:first-child { border-top: 0; padding-top: 0; }
 .feed-meta { display: flex; gap: 8px; font-size: 11.5px; color: var(--faint); margin-bottom: 4px; }
 .feed-meta strong { color: var(--dim); font-weight: 700; }
-.feed-row p { margin: 0; font-size: 12.5px; line-height: 1.6; color: var(--text); }
-.feed-foot { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line-soft); font-size: 11px; color: var(--faint); line-height: 1.55; }
-.feed-foot code { font-size: 10.5px; }
+/* Quoted, not stated: these are someone else's words and the rule down the
+   side is there to keep saying so while you read them. */
+.feed-row blockquote {
+  margin: 0; padding: 1px 0 1px 11px; border: 0; border-left: 2px solid var(--warm-line);
+  background: none; font-size: 12.5px; line-height: 1.6; color: var(--text); font-weight: 400;
+}
+.intercom-note {
+  margin: 13px 0 3px; padding: 9px 11px; border-radius: 8px;
+  background: var(--warm-soft); border: 1px solid var(--warm-line);
+  color: var(--warm); font-size: 11.5px; line-height: 1.55;
+}
+.intercom-note code { font-size: 10.5px; }
 
 /* ============================================================== banners === */
 .banner { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; padding: 12px 15px; border-radius: 13px; font-size: 13px; border: 1px solid; }
@@ -655,12 +666,15 @@ body.tech .ev .tk { display: block; }
 .pitch-note { font-size: 13.5px !important; }
 .lit { font-family: var(--mono); font-size: 12.5px; color: var(--text); }
 
-blockquote {
+/* Scoped to the pitch. As a bare element selector this reached every
+   blockquote on the site and handed them a panel, a border and a radius they
+   never asked for — visible only as a component that looked almost right. */
+.pitch blockquote {
   margin: 0 0 18px; padding: 18px 22px; border-radius: 14px;
   background: var(--panel); border: 1px solid var(--line);
   font-size: 16px; line-height: 1.6; color: var(--text); font-weight: 500;
 }
-blockquote cite { display: block; margin-top: 12px; font-size: 12.5px; font-style: normal; color: var(--faint); font-weight: 400; }
+.pitch blockquote cite { display: block; margin-top: 12px; font-size: 12.5px; font-style: normal; color: var(--faint); font-weight: 400; }
 
 .code {
   margin: 0 0 16px; padding: 16px 18px; border-radius: 12px; overflow-x: auto;
