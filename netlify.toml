@@ -1,8 +1,19 @@
-# Static deploy of the demo app. No backend, no environment secrets.
+# The app is static. The one endpoint behind it exists because a page cannot
+# verify its own proof: /api/presence issues the WebAuthn challenge and checks
+# the signature, which is the only part of an approval that has to happen
+# somewhere the attacker cannot reach.
+#
+# If it fails to deploy the demo still works — the app probes for it at startup
+# and, finding nothing, records approvals as unverified rather than refusing
+# them. Degrading loudly beats failing shut on someone's front door.
 
 [build]
   command = "bun install --frozen-lockfile && cd apps/haven && bun run build"
   publish = "apps/haven/dist"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
 
 [build.environment]
   BUN_VERSION = "1.3.14"

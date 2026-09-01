@@ -351,9 +351,17 @@ function showCard(request: ApprovalRequest): Promise<ApprovalOutcome> {
       approveBtn.disabled = true;
       denyBtn.disabled = true;
       approveBtn.textContent = "Waiting for you…";
-      const proof = await provePresence("Haven");
+      const proof = await provePresence(document.title || location.hostname, request.verifier);
       if (proof.ok) {
-        return settle({ granted: true, remember: checkbox.checked, presence: "proved" });
+        // "proved" only when someone off-page actually checked the signature.
+        return settle({
+          granted: true,
+          remember: checkbox.checked,
+          presence: proof.verified ? "proved" : "unverified",
+        });
+      }
+      if (proof.reason === "rejected") {
+        return settle({ granted: false, presence: "refused" });
       }
       if (proof.reason === "unavailable" && request.presence === "preferred") {
         // Falling back is a real weakening, so it is granted AND reported —
@@ -453,7 +461,8 @@ const REASON: Record<ReasonCode, string> = {
   policy_loosened: "a house rule was relaxed",
   policy_tightened: "a house rule was tightened",
   approval_synthetic: "something clicked Approve that was not you",
-  approval_present: "you proved it was you",
+  approval_present: "you proved it was you, and the site's server checked it",
+  presence_unverified: "a passkey answered, but nothing off-page checked it",
   presence_refused: "the passkey check was not satisfied",
   presence_unavailable: "this device cannot prove a person is here",
   explicit_allow: "a house rule allows this",

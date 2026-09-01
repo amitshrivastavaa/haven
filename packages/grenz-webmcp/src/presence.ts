@@ -12,12 +12,16 @@
  * and satisfying it takes a fingerprint, a face or a security key. An agent
  * with the mouse has none of those.
  *
- * What this is NOT: client-side verification of the assertion. The signature is
- * checked by a server in any real deployment, and a verifier living in the same
- * realm as the attacker proves nothing. The gate here is the ceremony — page
- * script cannot make `navigator.credentials.get()` resolve — not the maths
- * afterwards. Saying otherwise would be the kind of claim this library exists
- * to argue against.
+ * The assertion itself is not checked here, and could not usefully be: a
+ * verifier living in the same realm as the attacker decides whatever the
+ * attacker wants it to decide, and a challenge the page chose for itself is no
+ * challenge at all. So the site supplies a `Verifier` — a challenge it fetched
+ * from its own server, and a check it performs there — and an assertion nobody
+ * verified is reported as exactly that rather than counted as proof.
+ *
+ * Without a verifier the ceremony is still worth running: page script cannot
+ * make `navigator.credentials.get()` resolve, so it still stops everything
+ * sharing this realm. It just cannot stop a replay, and the trail says so.
  */
 
 /**
@@ -54,13 +58,36 @@ const CEREMONY_MS = 20_000;
 
 export type PresenceMode = "required" | "preferred";
 
+/**
+ * The site's server, as far as this file is concerned.
+ *
+ * `challenge` must come from somewhere the page does not control, or the whole
+ * ceremony reduces to a signature over a number the attacker picked.
+ */
+export interface Verifier {
+  /** A server-issued challenge, plus whatever the server needs to recognise it. */
+  challenge(): Promise<{ challenge: string; token: string; enrolled?: boolean }>;
+  /** Hand a new credential to the server. */
+  enrol(proof: { token: string; credentialId: string; publicKey: string }): Promise<boolean>;
+  /** True only when the server verified the signature against a known key. */
+  verify(proof: {
+    token: string;
+    credentialId: string;
+    clientDataJSON: string;
+    authenticatorData: string;
+    signature: string;
+  }): Promise<boolean>;
+}
+
 export type PresenceResult =
-  /** A platform authenticator answered. */
-  | { readonly ok: true; readonly credentialId: string }
+  /** A platform authenticator answered. `verified` says whether anyone checked. */
+  | { readonly ok: true; readonly credentialId: string; readonly verified: boolean }
   /** The device has no authenticator to ask. */
   | { readonly ok: false; readonly reason: "unavailable" }
   /** There was one, and the person did not satisfy it. */
-  | { readonly ok: false; readonly reason: "refused"; readonly message: string };
+  | { readonly ok: false; readonly reason: "refused"; readonly message: string }
+  /** The server looked at the assertion and said no. */
+  | { readonly ok: false; readonly reason: "rejected"; readonly message: string };
 
 /** ArrayBuffer, not Uint8Array: BufferSource will not take a possibly-shared one. */
 function randomChallenge(): ArrayBuffer {
@@ -121,10 +148,13 @@ export async function presenceAvailable(): Promise<boolean> {
  * Enrolment is itself a user-verifying ceremony, so the first approval is as
  * well proven as the ones after it — there is no weaker first step to aim at.
  */
-export async function provePresence(userLabel: string): Promise<PresenceResult> {
+export async function provePresence(
+  userLabel: string,
+  verifier?: Verifier,
+): Promise<PresenceResult> {
   if (!nativeGet || !nativeCreate) return { ok: false, reason: "unavailable" };
   if (!(await presenceAvailable())) return { ok: false, reason: "unavailable" };
-  return Promise.race([ceremony(userLabel), deadline()]);
+  return Promise.race([ceremony(userLabel, verifier), deadline()]);
 }
 
 /** A prompt nobody can answer is, from where the user stands, no prompt. */
@@ -134,13 +164,32 @@ function deadline(): Promise<PresenceResult> {
   );
 }
 
-async function ceremony(userLabel: string): Promise<PresenceResult> {
-  const existing = remembered();
+async function ceremony(userLabel: string, verifier?: Verifier): Promise<PresenceResult> {
+  let existing = remembered();
+
+  // The challenge has to come from somewhere the page does not control. With
+  // no verifier there is nowhere, so a local random one is used and the result
+  // is reported as unverified rather than dressed up as proof.
+  let issued: { challenge: string; token: string; enrolled?: boolean } | null = null;
+  if (verifier) {
+    try {
+      issued = await verifier.challenge();
+    } catch {
+      // The site said it had a server and the server is not there. That is a
+      // weaker check than promised, so it is never quietly treated as one.
+      return { ok: false, reason: "rejected", message: "The site could not reach its own server." };
+    }
+    // A credential this browser remembers but the server has never seen cannot
+    // be asserted against anything, so enrol instead of failing at the verify.
+    if (issued.enrolled === false) existing = null;
+  }
+  const challengeBytes = issued ? fromBase64Url(issued.challenge) : randomChallenge();
+
   try {
     if (!existing) {
       const created = (await nativeCreate({
         publicKey: {
-          challenge: randomChallenge(),
+          challenge: challengeBytes,
           rp: { name: RP_NAME },
           user: { id: randomChallenge(), name: userLabel, displayName: userLabel },
           // ES256 then RS256: the two every platform authenticator supports.
@@ -158,13 +207,30 @@ async function ceremony(userLabel: string): Promise<PresenceResult> {
       })) as PublicKeyCredential | null;
       if (!created) return { ok: false, reason: "refused", message: "No credential was created." };
       const id = toBase64Url(created.rawId);
+      const response = created.response as AuthenticatorAttestationResponse;
+      if (verifier && issued) {
+        // SPKI rather than the attestation object's COSE key: Web Crypto
+        // imports SPKI directly, so the server needs no CBOR parser to read it.
+        const spki = (
+          response as unknown as { getPublicKey?: () => ArrayBuffer | null }
+        ).getPublicKey?.();
+        if (!spki)
+          return { ok: false, reason: "refused", message: "This browser did not expose the key." };
+        const accepted = await verifier.enrol({
+          token: issued.token,
+          credentialId: id,
+          publicKey: toBase64Url(spki),
+        });
+        if (!accepted)
+          return { ok: false, reason: "rejected", message: "The server would not enrol this key." };
+      }
       remember(id);
-      return { ok: true, credentialId: id };
+      return { ok: true, credentialId: id, verified: Boolean(verifier) };
     }
 
     const assertion = (await nativeGet({
       publicKey: {
-        challenge: randomChallenge(),
+        challenge: challengeBytes,
         allowCredentials: [{ type: "public-key", id: fromBase64Url(existing) }],
         // The whole point: a gesture is not enough, the person must verify.
         userVerification: "required",
@@ -172,7 +238,22 @@ async function ceremony(userLabel: string): Promise<PresenceResult> {
       },
     })) as PublicKeyCredential | null;
     if (!assertion) return { ok: false, reason: "refused", message: "No assertion was returned." };
-    return { ok: true, credentialId: toBase64Url(assertion.rawId) };
+    const id = toBase64Url(assertion.rawId);
+    if (!verifier || !issued) return { ok: true, credentialId: id, verified: false };
+
+    const response = assertion.response as AuthenticatorAssertionResponse;
+    const accepted = await verifier.verify({
+      token: issued.token,
+      credentialId: id,
+      clientDataJSON: toBase64Url(response.clientDataJSON),
+      authenticatorData: toBase64Url(response.authenticatorData),
+      signature: toBase64Url(response.signature),
+    });
+    // The server is the authority. A signature it would not accept is not a
+    // weaker approval, it is no approval.
+    if (!accepted)
+      return { ok: false, reason: "rejected", message: "The server did not accept the signature." };
+    return { ok: true, credentialId: id, verified: true };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     // A credential the platform has forgotten (cleared storage, new profile)

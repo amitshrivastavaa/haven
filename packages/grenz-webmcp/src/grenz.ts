@@ -17,7 +17,7 @@ import {
   registry,
   type RegistryEntry,
 } from "./takeover.ts";
-import type { PresenceMode } from "./presence.ts";
+import type { PresenceMode, Verifier } from "./presence.ts";
 import type {
   GrenzConfig,
   GrenzDenial,
@@ -41,6 +41,8 @@ export interface ApprovalRequest {
   readonly plain?: string;
   /** The site wants a person proved present, not merely a real click. */
   readonly presence?: PresenceMode;
+  /** Where to check the proof, when the site named somewhere. */
+  readonly verifier?: Verifier;
   readonly input: unknown;
   readonly timeoutMs: number;
   /** Aborts when the request is resolved elsewhere (timeout, agent hang-up). */
@@ -59,7 +61,7 @@ export interface ApprovalOutcome {
    */
   readonly synthetic?: boolean;
   /** How the presence ceremony went, when the policy asked for one. */
-  readonly presence?: "proved" | "refused" | "unavailable";
+  readonly presence?: "proved" | "unverified" | "refused" | "unavailable";
 }
 
 export type Approver = (request: ApprovalRequest) => Promise<ApprovalOutcome>;
@@ -358,6 +360,7 @@ export function grenz(config: GrenzConfig = {}): GrenzInstance {
           effect,
           plain: describeInput(config.tools?.[entry.name]?.describe, input),
           presence: config.tools?.[entry.name]?.presence,
+          verifier: config.presence,
           input,
           timeoutMs,
           close: closer.signal,
@@ -374,7 +377,9 @@ export function grenz(config: GrenzConfig = {}): GrenzInstance {
                     : o.granted
                       ? o.presence === "proved"
                         ? "approval_present"
-                        : "approval_granted"
+                        : o.presence === "unverified"
+                          ? "presence_unverified"
+                          : "approval_granted"
                       : "approval_denied",
               remember: o.remember,
             }),

@@ -44,6 +44,8 @@ export type ReasonCode =
   | "approval_synthetic"
   /** A person proved they were there. */
   | "approval_present"
+  /** A ceremony ran, but nothing off-page checked the signature. */
+  | "presence_unverified"
   /** The ceremony ran and was not satisfied. */
   | "presence_refused"
   /** The site required presence and this device cannot prove it. */
@@ -118,6 +120,14 @@ export interface ToolPolicy {
 }
 
 export interface GrenzConfig {
+  /**
+   * Where a presence proof gets checked.
+   *
+   * Without one the ceremony still stops every attacker sharing the page, but
+   * the signature goes unverified and a replay is not caught — so the trail
+   * says `presence_unverified` rather than claiming a proof it did not check.
+   */
+  readonly presence?: Verifier;
   /** Anything not named in `tools` takes this. Default: "deny". */
   readonly defaultAction?: "deny" | "allow";
   readonly tools?: Readonly<Record<string, ToolPolicy>>;
@@ -138,7 +148,7 @@ export interface GrenzConfig {
  * highest-value move an attacker can make — it buys every future call at once
  * — so it cannot be the one thing the trail does not show.
  */
-import type { PresenceMode } from "./presence.ts";
+import type { PresenceMode, Verifier } from "./presence.ts";
 
 export type EventKind = "register" | "call" | "grant" | "policy";
 
