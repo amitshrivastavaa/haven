@@ -3,8 +3,11 @@ import { useGrenzTool } from "grenz-webmcp/react";
 import { g } from "./grenz-instance";
 import { doorbellEvents, initialHouse, SCENES } from "./house";
 import { Simulator } from "./Simulator";
-import { Banner, DoorbellFeed, Head, RulesCard } from "./components";
-import { ActivityCard } from "./Feed";
+import { Banner, DoorbellFeed, Head, RulesCard, Scenes, type View } from "./components";
+import { ActivityCard, useLines } from "./Feed";
+import { Access } from "./Access";
+import { History } from "./History";
+import { Demo, type Scenario } from "./Demo";
 import { Rules } from "./Rules";
 import { FloorPlan, spotFor, type Spot } from "./FloorPlan";
 import { loadEcoSaver, loadHomeInsights, unloadEcoSaver, unloadHomeInsights } from "./widgets";
@@ -24,6 +27,8 @@ export function App() {
   const [agent, setAgent] = useState<{ at: Spot; blocked: boolean } | null>(null);
   const [busy, setBusy] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
+  const [view, setView] = useState<View>("home");
+  const [demoOpen, setDemoOpen] = useState(false);
 
   const webmcp = useMemo(hasWebMCP, []);
   const polyfilled = useMemo(() => Boolean((window as any).__grenzPolyfilled), []);
@@ -386,6 +391,48 @@ export function App() {
     }));
   }, []);
 
+  const lines = useLines();
+  const refused = lines.filter((l) => l.kind === "no").length;
+
+  /**
+   * The scenarios, described rather than labelled. These live in the demo
+   * drawer instead of the app's own frame: a product with "Replay the attack"
+   * among its furniture reads as a test harness, however well it is built.
+   */
+  const scenarios: Scenario[] = [
+    {
+      id: "sam",
+      label: "Sam the dog walker",
+      note: "Reads the door log and lights the porch on its own, then has to ask you before unlocking.",
+      run: sam,
+    },
+    {
+      id: "dinner",
+      label: "Dinner at seven",
+      note: "250° for three hours is refused by the oven's own bounds. 180° for 45 minutes goes straight through.",
+      run: dinner,
+    },
+    {
+      id: "evening",
+      label: "Evening in",
+      note: "A 45° thermostat request is out of range and refused; a sensible one lands and the scene changes.",
+      run: evening,
+    },
+    {
+      id: "runaway",
+      label: "Runaway assistant",
+      note: "Twelve light calls against a limit of eight. The first eight land and you watch them flicker; the rest are refused.",
+      run: runaway,
+    },
+    {
+      id: "attack",
+      label: "Replay the attack",
+      note: "A message left at your front door tries to talk the assistant into unlocking, disarming the alarm and granting a stranger a key.",
+      run: attack,
+      danger: true,
+    },
+  ];
+
   return (
     <div className="wrap">
       <Head
@@ -394,8 +441,10 @@ export function App() {
         protection={protection}
         onProtection={toggleProtection}
         summary={summary}
-        scene={house.scene}
-        onScene={applyScene}
+        view={view}
+        onView={setView}
+        refused={refused}
+        onDemo={() => setDemoOpen(true)}
       />
 
       {!protection && (
@@ -422,87 +471,85 @@ export function App() {
         </Banner>
       )}
 
-      <main>
-        <div className="stage">
-          <FloorPlan
-            house={house}
-            agent={agent}
-            onLight={(id) =>
-              setHouse((h) => ({
-                ...h,
-                lights: h.lights.map((l) => (l.id === id ? { ...l, on: !l.on } : l)),
-              }))
-            }
-            // Locking is always safe. Unlocking has to come through the policy,
-            // so there is deliberately no way to do it from here.
-            onLock={() => patch({ doorLocked: true })}
-            // Clamped to the same 10–30 the policy imposes on the assistant: a
-            // control that let a person exceed the rule would make the rule look
-            // arbitrary rather than physical.
-            onTarget={(next) => patch({ targetC: Math.min(30, Math.max(10, next)) })}
-            onAlarm={() => patch({ alarmArmed: !house.alarmArmed })}
-          />
+      {view === "home" && (
+        <div className="home">
+          <div className="stage">
+            <Scenes scene={house.scene} onScene={applyScene} />
 
-          <form
-            className="bar"
-            autoComplete="off"
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (cmd.trim()) void send(cmd);
-            }}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1" />
-            </svg>
-            <input
-              value={cmd}
-              onChange={(e) => setCmd(e.target.value)}
-              placeholder="Ask your assistant to do something…"
-              aria-label="Ask your assistant"
+            <FloorPlan
+              house={house}
+              agent={agent}
+              onLight={(id) =>
+                setHouse((h) => ({
+                  ...h,
+                  lights: h.lights.map((l) => (l.id === id ? { ...l, on: !l.on } : l)),
+                }))
+              }
+              // Locking is always safe. Unlocking has to come through the
+              // policy, so there is deliberately no way to do it from here.
+              onLock={() => patch({ doorLocked: true })}
+              // Clamped to the same 10–30 the policy imposes on the assistant:
+              // a control that let a person exceed the rule would make the rule
+              // look arbitrary rather than physical.
+              onTarget={(next) => patch({ targetC: Math.min(30, Math.max(10, next)) })}
+              onAlarm={() => patch({ alarmArmed: !house.alarmArmed })}
             />
-            <button className="send" type="submit" disabled={!cmd.trim()}>
-              Send
-            </button>
-          </form>
 
-          <div className="run">
-            <button className="btn primary" onClick={sam} disabled={busy}>
-              ▶ Sam the dog walker
-            </button>
-            <button className="btn" onClick={dinner} disabled={busy}>
-              ▶ Dinner at seven
-            </button>
-            <button className="btn" onClick={evening} disabled={busy}>
-              ▶ Evening in
-            </button>
-            <button className="btn" onClick={runaway} disabled={busy}>
-              ▶ Runaway agent
-            </button>
-            <button className="btn" onClick={() => toggleWidgets(!widgets)}>
-              {widgets ? "✓ Third-party scripts" : "▶ Third-party scripts"}
-            </button>
-            <button className="btn danger" onClick={attack} disabled={busy}>
-              ▶ Replay the attack
-            </button>
-            <button className="btn" onClick={reset}>
-              Reset
-            </button>
-            <span className="runhint">or click a room to switch its light</span>
+            <form
+              className="bar"
+              autoComplete="off"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (cmd.trim()) void send(cmd);
+              }}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1" />
+              </svg>
+              <input
+                value={cmd}
+                onChange={(e) => setCmd(e.target.value)}
+                placeholder="Ask your assistant to do something…"
+                aria-label="Ask your assistant"
+              />
+              <button className="send" type="submit" disabled={!cmd.trim()}>
+                Send
+              </button>
+            </form>
+
+            <div className="access-line">
+              {house.access.length} with access: {house.access.join(", ")} · click a room to switch
+              its light
+            </div>
           </div>
 
-          <div className="access-line">
-            {house.access.length} with access: {house.access.join(", ")}
-          </div>
+          <aside className="side">
+            <ActivityCard />
+            <RulesCard onEdit={() => setRulesOpen(true)} />
+            <DoorbellFeed events={doorbellEvents} />
+          </aside>
         </div>
-      </main>
+      )}
 
-      <aside className="side">
-        <ActivityCard />
-        <RulesCard onEdit={() => setRulesOpen(true)} />
-        <DoorbellFeed events={doorbellEvents} />
-      </aside>
+      {view === "access" && (
+        <Access people={house.access} widgets={widgets} onWidgets={toggleWidgets} />
+      )}
+
+      {view === "history" && <History />}
 
       {rulesOpen && <Rules onClose={() => setRulesOpen(false)} />}
+      {demoOpen && (
+        <Demo
+          scenarios={scenarios}
+          busy={busy}
+          onReset={reset}
+          onSimulator={() => {
+            setSimOpen(true);
+            setDemoOpen(false);
+          }}
+          onClose={() => setDemoOpen(false)}
+        />
+      )}
       {simOpen && <Simulator g={g} webmcp={webmcp} onClose={() => setSimOpen(false)} />}
     </div>
   );

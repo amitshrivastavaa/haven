@@ -4,22 +4,34 @@ import { SCENES } from "./house";
 import { RULE_COPY, rules } from "./policy";
 import type { DoorbellEvent, SceneId } from "./types";
 
+export type View = "home" | "access" | "history";
+
+const VIEWS: { id: View; label: string }[] = [
+  { id: "home", label: "Home" },
+  { id: "access", label: "Access" },
+  { id: "history", label: "History" },
+];
+
 export function Head({
   webmcp,
   polyfilled,
   protection,
   onProtection,
   summary,
-  scene,
-  onScene,
+  view,
+  onView,
+  refused,
+  onDemo,
 }: {
   webmcp: boolean;
   polyfilled: boolean;
   protection: boolean;
   onProtection: (next: boolean) => void;
   summary: string;
-  scene: SceneId;
-  onScene: (s: SceneId) => void;
+  view: View;
+  onView: (v: View) => void;
+  refused: number;
+  onDemo: () => void;
 }) {
   return (
     <div className="head">
@@ -29,24 +41,41 @@ export function Head({
         <p className="sub">
           {summary}
           {" · "}
-          <span title={polyfilled ? "A demo polyfill is standing in for the browser's WebMCP" : "document.modelContext"}>
-            {!webmcp ? "no assistant connected" : polyfilled ? "assistant connected (demo)" : "assistant connected"}
+          <span
+            title={
+              polyfilled
+                ? "A demo polyfill is standing in for the browser's WebMCP"
+                : "document.modelContext"
+            }
+          >
+            {!webmcp
+              ? "no assistant connected"
+              : polyfilled
+                ? "assistant connected (demo)"
+                : "assistant connected"}
           </span>
         </p>
       </div>
 
-      <div className="modes" role="group" aria-label="Home mode">
-        {Object.values(SCENES).map((s) => (
+      {/* The views are the app's own navigation. Tools stay registered on the
+          document whichever one is showing, so moving between them never
+          leaves an agent looking at an empty toolset. */}
+      <nav className="nav" aria-label="Views">
+        {VIEWS.map((v) => (
           <button
-            key={s.id}
-            className="mode"
-            aria-pressed={s.id === scene}
-            onClick={() => onScene(s.id as SceneId)}
+            key={v.id}
+            aria-current={v.id === view ? "page" : undefined}
+            onClick={() => onView(v.id)}
           >
-            {s.name}
+            {v.label}
+            {v.id === "history" && refused > 0 && (
+              <span className="n-count" aria-label={`${refused} refused`}>
+                {refused}
+              </span>
+            )}
           </button>
         ))}
-      </div>
+      </nav>
 
       <button
         className={`guard ${protection ? "on" : "off"}`}
@@ -55,6 +84,28 @@ export function Head({
       >
         Haven protection <span className="sw" />
       </button>
+
+      <button className="mode" onClick={onDemo}>
+        Demo
+      </button>
+    </div>
+  );
+}
+
+/** Scene presets. A home-screen control, so it lives on the home screen. */
+export function Scenes({ scene, onScene }: { scene: SceneId; onScene: (s: SceneId) => void }) {
+  return (
+    <div className="modes" role="group" aria-label="Home mode">
+      {Object.values(SCENES).map((s) => (
+        <button
+          key={s.id}
+          className="mode"
+          aria-pressed={s.id === scene}
+          onClick={() => onScene(s.id as SceneId)}
+        >
+          {s.name}
+        </button>
+      ))}
     </div>
   );
 }
@@ -73,7 +124,8 @@ export function Banner({ kind, children }: { kind: "info" | "danger"; children: 
  * to be read rather than guessed from a three-across segmented control.
  */
 export function RulesCard({ onEdit }: { onEdit: () => void }) {
-  const dot = (a: ToolAction | undefined) => (a === "approve" ? "r-ask" : a === "deny" ? "r-never" : "");
+  const dot = (a: ToolAction | undefined) =>
+    a === "approve" ? "r-ask" : a === "deny" ? "r-never" : "";
 
   return (
     <div className="card rules">

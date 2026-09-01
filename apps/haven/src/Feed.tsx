@@ -96,7 +96,7 @@ function did(e: TimelineEvent): string {
     .replace(/^Run /, "Started ");
 }
 
-interface Line {
+export interface Line {
   id: string;
   kind: "ok" | "no" | "eye";
   title: string;
@@ -104,7 +104,7 @@ interface Line {
   technical: string;
 }
 
-function toLine(e: TimelineEvent): Line | null {
+export function toLine(e: TimelineEvent): Line | null {
   const technical = [
     e.tool,
     e.reason,
@@ -160,16 +160,43 @@ function toLine(e: TimelineEvent): Line | null {
   };
 }
 
-export function ActivityCard() {
+/** The timeline, newest first, already turned into sentences. */
+export function useLines(): Line[] {
   const [events, setEvents] = useState<TimelineEvent[]>([]);
-  const [tech, setTech] = useState(false);
-
   useEffect(() => g.subscribe(setEvents), []);
+  return [...events].reverse().map(toLine).filter((l): l is Line => l !== null);
+}
+
+/** One event. Shared so Activity and History can never drift apart. */
+export function EventRow({ line }: { line: Line }) {
+  return (
+    <div className={`ev ${line.kind}`}>
+      <div className="d">{line.kind === "no" ? <Nope /> : line.kind === "eye" ? <Eye /> : <Tick />}</div>
+      <div>
+        <b>{line.title}</b>
+        {line.detail && <span>{line.detail}</span>}
+        <div className="tk">{line.technical}</div>
+      </div>
+    </div>
+  );
+}
+
+/** Puts the developer's version one toggle away, wherever events are shown. */
+export function TechToggle() {
+  const [tech, setTech] = useState(() => document.body.classList.contains("tech"));
   useEffect(() => {
     document.body.classList.toggle("tech", tech);
   }, [tech]);
+  return (
+    <label className="toggle">
+      <input type="checkbox" checked={tech} onChange={(e) => setTech(e.target.checked)} />
+      <span className="tr" /> Show technical detail
+    </label>
+  );
+}
 
-  const lines = [...events].reverse().map(toLine).filter((l): l is Line => l !== null);
+export function ActivityCard() {
+  const lines = useLines();
   const refused = lines.filter((l) => l.kind === "no").length;
 
   return (
@@ -185,23 +212,11 @@ export function ActivityCard() {
         {lines.length === 0 ? (
           <div className="quiet">Your assistant hasn't done anything yet.</div>
         ) : (
-          lines.map((l) => (
-            <div key={l.id} className={`ev ${l.kind}`}>
-              <div className="d">{l.kind === "no" ? <Nope /> : l.kind === "eye" ? <Eye /> : <Tick />}</div>
-              <div>
-                <b>{l.title}</b>
-                {l.detail && <span>{l.detail}</span>}
-                <div className="tk">{l.technical}</div>
-              </div>
-            </div>
-          ))
+          lines.slice(0, 12).map((l) => <EventRow key={l.id} line={l} />)
         )}
       </div>
 
-      <label className="toggle">
-        <input type="checkbox" checked={tech} onChange={(e) => setTech(e.target.checked)} />
-        <span className="tr" /> Show technical detail
-      </label>
+      <TechToggle />
     </div>
   );
 }
