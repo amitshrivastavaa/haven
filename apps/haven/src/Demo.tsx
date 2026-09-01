@@ -1,6 +1,12 @@
 import { useEffect } from "react";
 
 /**
+ * Below this width the panel would cover the plan, so a scenario closes it
+ * on the way out. Above it, the page shifts and both stay visible.
+ */
+const NARROW = 1180;
+
+/**
  * The demo drawer.
  *
  * These controls used to sit in the app's own frame, which made a product look
@@ -11,6 +17,11 @@ import { useEffect } from "react";
  * Nothing in here is scripted playback. Every scenario is a real sequence of
  * real tool calls through the real pipeline, which is why one can be
  * interrupted by an approval card, and why one can fail.
+ *
+ * Deliberately NOT modal. The whole point of a scenario is watching the house
+ * react to it — the lights pool, the assistant moves, the door bolt slides —
+ * so dimming the app behind a veil defeated the feature it exists to show.
+ * The page shifts to make room instead, and stays live underneath.
  */
 
 export interface Scenario {
@@ -42,10 +53,13 @@ export function Demo({
     return () => document.removeEventListener("keydown", onKey);
   }, [onClose]);
 
+  const play = (run: () => void) => () => {
+    if (window.innerWidth < NARROW) onClose();
+    run();
+  };
+
   return (
-    <>
-      <div className="demo-veil" onClick={onClose} />
-      <aside className="demo" role="dialog" aria-modal="true" aria-label="Demo">
+    <aside className="demo" role="complementary" aria-label="Demo">
         <div className="demo-head">
           <div className="row">
             <h2>Demo</h2>
@@ -66,7 +80,7 @@ export function Demo({
             <button
               key={s.id}
               className={`scen ${s.danger ? "danger" : ""}`}
-              onClick={s.run}
+              onClick={play(s.run)}
               disabled={busy}
             >
               <b>{s.label}</b>
@@ -87,7 +101,6 @@ export function Demo({
         <div className="demo-foot">
           <button onClick={onReset}>Reset the house</button>
         </div>
-      </aside>
-    </>
+    </aside>
   );
 }

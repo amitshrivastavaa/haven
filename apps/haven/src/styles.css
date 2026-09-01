@@ -87,7 +87,10 @@ code { font-family: var(--mono); }
   background: var(--accent);
 }
 .head h1 { margin: 0; font-family: var(--display); font-size: 23px; font-weight: 800; letter-spacing: -.035em; }
-.head .sub { margin: 1px 0 0; color: var(--faint); font-size: 12.5px; }
+.head .sub {
+  margin: 1px 0 0; color: var(--faint); font-size: 12.5px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
 
 /* Views. The tools stay registered whichever of these is showing — they live
    on the document, not on the view, so an agent is never looking at an empty
@@ -397,7 +400,12 @@ body.tech .ev .tk { display: block; }
 .hist .ev { background: var(--panel); border: 1px solid var(--line); }
 
 /* ================================================================= demo === */
-.demo-veil { position: fixed; inset: 0; z-index: 60; background: rgba(20, 19, 26, .42); backdrop-filter: blur(3px); animation: veil-in .16s ease-out; }
+/* No veil. A scenario is worth running because you watch the house answer it,
+   and a dimmed, blurred house answers nothing. The panel sits beside the app
+   and the shell makes room for it. */
+.wrap.with-demo { transition: padding-right .26s cubic-bezier(.2, .8, .3, 1); }
+@media (min-width: 1180px) { .wrap.with-demo { padding-right: 462px; } }
+@media (prefers-reduced-motion: reduce) { .wrap.with-demo { transition: none; } }
 .demo {
   position: fixed; top: 0; right: 0; bottom: 0; z-index: 61; width: min(430px, 100%);
   background: var(--panel); border-left: 1px solid var(--line);
@@ -540,7 +548,7 @@ blockquote cite { display: block; margin-top: 12px; font-size: 12.5px; font-styl
 .pitch-foot p { margin: 0; font-size: 13.5px; color: var(--faint); line-height: 1.6; flex: 1; min-width: 260px; }
 
 /* --- narrow screens ------------------------------------------------------ */
-.head-id { flex: 1 1 auto; min-width: 0; }
+.head-id { flex: 1 1 0; min-width: 0; }
 
 @media (max-width: 780px) {
   .wrap { padding: 16px 14px 32px; }

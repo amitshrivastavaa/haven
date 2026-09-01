@@ -452,7 +452,7 @@ export function App() {
   }
 
   return (
-    <div className="wrap">
+    <div className={`wrap ${demoOpen ? "with-demo" : ""}`}>
       <Head
         webmcp={webmcp}
         polyfilled={polyfilled}
@@ -462,7 +462,8 @@ export function App() {
         view={view}
         onView={setView}
         refused={refused}
-        onDemo={() => setDemoOpen(true)}
+        onDemo={() => setDemoOpen((v) => !v)}
+        demoOpen={demoOpen}
         onPitch={() => setEntered(false)}
       />
 

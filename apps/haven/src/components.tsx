@@ -22,6 +22,7 @@ export function Head({
   onView,
   refused,
   onDemo,
+  demoOpen,
   onPitch,
 }: {
   webmcp: boolean;
@@ -33,6 +34,7 @@ export function Head({
   onView: (v: View) => void;
   refused: number;
   onDemo: () => void;
+  demoOpen: boolean;
   onPitch: () => void;
 }) {
   return (
@@ -89,7 +91,7 @@ export function Head({
         Haven protection <span className="sw" />
       </button>
 
-      <button className="mode" onClick={onDemo}>
+      <button className="mode" onClick={onDemo} aria-pressed={demoOpen}>
         Demo
       </button>
     </div>
