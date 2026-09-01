@@ -273,7 +273,7 @@ export function FloorPlan({
 
         {/* The porch is outside, and it has its own light. */}
         <g
-          className={`fp-room fp-porch ${lit("porch") ? "lit" : ""}`}
+          className={`fp-room ${lit("porch") ? "lit" : ""}`}
           {...pressable(() => onLight("porch"), `Porch, light ${lit("porch") ? "on" : "off"}`)}
         >
           <clipPath id="clip-por">
