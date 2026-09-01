@@ -58,6 +58,9 @@
   --font: "Manrope", ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   --radius: 18px;
+  /* The app's column. The dock lines its contents up with this, so the two
+     must not drift apart. */
+  --shell: 1320px;
 }
 
 * { box-sizing: border-box; }
@@ -78,7 +81,7 @@ code { font-family: var(--mono); }
 }
 
 /* ============================================================== shell === */
-.wrap { max-width: 1320px; margin: 0 auto; padding: 20px 24px 44px; }
+.wrap { max-width: var(--shell); margin: 0 auto; padding: 20px 24px 44px; }
 
 .head { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
 .logo {
@@ -400,52 +403,57 @@ body.tech .ev .tk { display: block; }
 .hist .ev { background: var(--panel); border: 1px solid var(--line); }
 
 /* ================================================================= demo === */
-/* No veil. A scenario is worth running because you watch the house answer it,
-   and a dimmed, blurred house answers nothing. The panel sits beside the app
-   and the shell makes room for it.
+/* A bar, not a drawer. 430px of sidebar for six buttons took a quarter of the
+   screen and competed with the house it exists to show; a scenario is worth
+   running because you watch the house answer it. The dock costs ~84px of
+   height, the layout never moves, and you can fire one scenario after another.
 
-   The inset goes on the shell, not on .wrap. .wrap is `max-width: 1320px;
-   margin: 0 auto`, so padding-right shrank the content inside a box that
-   stayed centred on the whole viewport — the app slid left and left a dead
-   column between itself and the panel. Insetting the parent narrows the space
-   the auto margins centre within, so the app just re-centres, full width, in
-   what is left. :has() rather than a body class: the state already lives on
-   .wrap, and one selector beats threading it through React. */
-#root { transition: padding-right .26s cubic-bezier(.2, .8, .3, 1); }
-@media (min-width: 1180px) { #root:has(.wrap.with-demo) { padding-right: 430px; } }
+   The inset goes on the shell rather than on .wrap: .wrap is `max-width:
+   1320px; margin: 0 auto`, so padding on it shrinks content inside a box that
+   stays centred on the whole viewport, which is how the old right-hand inset
+   left a dead column beside the panel. */
+#root { transition: padding-bottom .24s cubic-bezier(.2, .8, .3, 1); }
+#root:has(.wrap.with-demo) { padding-bottom: 84px; }
 @media (prefers-reduced-motion: reduce) { #root { transition: none; } }
-.demo {
-  position: fixed; top: 0; right: 0; bottom: 0; z-index: 61; width: min(430px, 100%);
-  background: var(--panel); border-left: 1px solid var(--line);
-  box-shadow: var(--shadow-lg); display: flex; flex-direction: column;
-  animation: slidein .26s cubic-bezier(.2, .8, .3, 1);
+
+.dock {
+  position: fixed; inset: auto 0 0 0; z-index: 50;   /* under the simulator's 55 */
+  background: var(--panel); border-top: 1px solid var(--line);
+  box-shadow: 0 -10px 34px -20px rgba(20, 19, 26, .5);
+  padding: 10px 0 12px;   /* horizontal padding lives on the children */
+  animation: dockin .24s cubic-bezier(.2, .8, .3, 1);
 }
-@keyframes slidein { from { transform: translateX(24px); opacity: 0; } }
-@media (prefers-reduced-motion: reduce) { .demo { animation: none; } }
-.demo-head { padding: 22px 22px 16px; border-bottom: 1px solid var(--line-soft); flex: none; }
-.demo-head .row { display: flex; align-items: flex-start; gap: 14px; }
-.demo-head h2 { margin: 0; font-family: var(--display); font-size: 20px; font-weight: 800; letter-spacing: -.03em; flex: 1; }
-.demo-head p { margin: 10px 0 0; font-size: 12.5px; color: var(--dim); line-height: 1.6; }
-.demo-close { flex: none; padding: 8px 15px; border-radius: 9px; border: 1px solid var(--line); font-size: 12.5px; font-weight: 700; }
-.demo-body { overflow-y: auto; padding: 16px 22px 24px; flex: 1; }
-.demo-body h3 { margin: 22px 0 9px; font-family: var(--mono); font-size: 10px; font-weight: 500; letter-spacing: .2em; text-transform: uppercase; color: var(--faint); }
-.demo-body h3:first-child { margin-top: 0; }
-.scen {
-  display: block; width: 100%; text-align: left; padding: 13px 15px; border-radius: 12px;
-  border: 1px solid var(--line); background: var(--panel); margin-bottom: 7px;
-  transition: border-color .14s, background .14s;
+/* Bar is full-bleed, contents are not: they line up with .wrap's centred
+   column so the pills sit under the app rather than under the viewport.
+   Set on each child rather than `.dock > *` — the children's own `margin`
+   shorthands have the same specificity and come later, so they would blank
+   the auto margins straight back out. */
+@keyframes dockin { from { transform: translateY(100%); } }
+@media (prefers-reduced-motion: reduce) { .dock { animation: none; } }
+/* Fixed height so swapping the hint on hover never nudges the pills. */
+.dock-hint {
+  max-width: var(--shell); margin: 0 auto 9px; padding: 0 24px; height: 17px; font-size: 12px; line-height: 17px; color: var(--faint);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.scen:hover:not(:disabled) { border-color: var(--faint); background: var(--sunk); }
-.scen:disabled { opacity: .45; cursor: not-allowed; }
-.scen b { display: block; font-size: 13.5px; font-weight: 700; }
-.scen span { display: block; font-size: 12px; color: var(--faint); margin-top: 3px; line-height: 1.45; }
-.scen.danger { border-color: var(--stop-line); background: var(--stop-soft); }
-.scen.danger b { color: var(--stop); }
-.scen.danger span { color: var(--stop); opacity: .75; }
-.scen.on { border-color: var(--accent); }
-.demo-foot { padding: 16px 22px; border-top: 1px solid var(--line-soft); flex: none; display: flex; gap: 8px; flex-wrap: wrap; }
-.demo-foot button { padding: 9px 15px; border-radius: 9px; font-size: 12.5px; font-weight: 700; border: 1px solid var(--line); background: var(--panel); }
-.demo-foot button:hover { border-color: var(--faint); }
+.dock-row { max-width: var(--shell); margin: 0 auto; padding: 0 24px; display: flex; align-items: center; gap: 20px; }
+.dock-scen { display: flex; gap: 7px; flex: 1 1 0; min-width: 0; overflow-x: auto; }
+.dock-tools { display: flex; gap: 7px; flex: none; }
+.pill {
+  flex: none; padding: 8px 15px; border-radius: 999px; border: 1px solid var(--line);
+  background: var(--panel); font-size: 13px; font-weight: 650; white-space: nowrap;
+  transition: border-color .14s, background .14s, color .14s;
+}
+.pill:hover:not(:disabled) { border-color: var(--accent-line); background: var(--sunk); }
+.pill:disabled { opacity: .45; cursor: not-allowed; }
+.pill.danger { border-color: var(--stop-line); background: var(--stop-soft); color: var(--stop); }
+.pill.danger:hover:not(:disabled) { border-color: var(--stop); }
+.dock-tools button {
+  padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line);
+  background: var(--panel); font-size: 12.5px; font-weight: 650; color: var(--dim);
+  white-space: nowrap;
+}
+.dock-tools button:hover { color: var(--text); border-color: var(--faint); }
+.dock-close { width: 33px; height: 33px; padding: 0; font-size: 13px; }
 
 /* ============================================================ simulator === */
 .sim {
@@ -568,7 +576,15 @@ blockquote cite { display: block; margin-top: 12px; font-size: 12.5px; font-styl
   .guard { margin-left: 0; order: 4; }
   .head > .mode { order: 5; }
   .pitch-hero { padding: 12px 0 28px; }
-  .sheet-head, .sheet-body, .demo-head, .demo-body, .demo-foot { padding-left: 18px; padding-right: 18px; }
+  .sheet-head, .sheet-body { padding-left: 18px; padding-right: 18px; }
+  /* Pills and tools cannot share a row on a phone, so they stack — the pills
+     still scroll sideways rather than wrapping to an unpredictable height. */
+  .dock { padding: 9px 0 11px; }
+  .dock-hint, .dock-row { padding-left: 14px; padding-right: 14px; }
+  .dock-row { flex-direction: column; align-items: stretch; gap: 8px; }
+  .dock-scen { flex: none; }
+  .dock-tools { justify-content: flex-end; }
+  #root:has(.wrap.with-demo) { padding-bottom: 132px; }
   .rule-choice, .rule-what { min-width: 0; }
   .who { padding: 13px 14px; }
   .sim-body { grid-template-columns: 1fr; }

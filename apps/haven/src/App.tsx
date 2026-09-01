@@ -563,10 +563,10 @@ export function App() {
           scenarios={scenarios}
           busy={busy}
           onReset={reset}
-          onSimulator={() => {
-            setSimOpen(true);
-            setDemoOpen(false);
-          }}
+          // The simulator is a bottom sheet, so it covers the dock rather than
+          // fighting it. Leaving the dock open means closing the sheet puts the
+          // scenarios back where they were.
+          onSimulator={() => setSimOpen(true)}
           onClose={() => setDemoOpen(false)}
         />
       )}

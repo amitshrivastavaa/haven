@@ -1,13 +1,7 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 /**
- * Below this width the panel would cover the plan, so a scenario closes it
- * on the way out. Above it, the page shifts and both stay visible.
- */
-const NARROW = 1180;
-
-/**
- * The demo drawer.
+ * The demo dock.
  *
  * These controls used to sit in the app's own frame, which made a product look
  * like a test harness — the single thing most likely to cost a reader's trust
@@ -18,11 +12,25 @@ const NARROW = 1180;
  * real tool calls through the real pipeline, which is why one can be
  * interrupted by an approval card, and why one can fail.
  *
- * Deliberately NOT modal. The whole point of a scenario is watching the house
- * react to it — the lights pool, the assistant moves, the door bolt slides —
- * so dimming the app behind a veil defeated the feature it exists to show.
- * The page shifts to make room instead, and stays live underneath.
+ * A bar rather than a drawer. The whole point of a scenario is watching the
+ * house react to it — the lights pool, the bolt slides, the rail fills — so a
+ * 430px panel that took a quarter of the screen was competing with the thing
+ * it exists to show. Six buttons need a transport control, not a sidebar: the
+ * house keeps its full width, and you can fire one scenario after another
+ * without the layout moving underneath you.
+ *
+ * The notes each scenario carries are worth reading, so they are not thrown
+ * away with the panel — one line above the pills shows whichever scenario the
+ * pointer or keyboard is on, and `title` keeps the same text reachable.
  */
+
+const RESTING =
+  "Every one is a real sequence of real tool calls. The house rules answer them exactly as they " +
+  "would answer an agent, which is why one can stop to ask you.";
+
+const SIM_NOTE =
+  "Call any registered tool by hand, with your own arguments — through Grenz, or through the " +
+  "browser's own getTools() and executeTool() where WebMCP is available.";
 
 export interface Scenario {
   id: string;
@@ -45,6 +53,8 @@ export function Demo({
   onSimulator: () => void;
   onClose: () => void;
 }) {
+  const [hint, setHint] = useState<string | null>(null);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -53,54 +63,46 @@ export function Demo({
     return () => document.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  const play = (run: () => void) => () => {
-    if (window.innerWidth < NARROW) onClose();
-    run();
-  };
+  /** Hover and focus both drive the hint, so it works without a pointer. */
+  const shows = (note: string) => ({
+    onMouseEnter: () => setHint(note),
+    onMouseLeave: () => setHint(null),
+    onFocus: () => setHint(note),
+    onBlur: () => setHint(null),
+  });
 
   return (
-    <aside className="demo" role="complementary" aria-label="Demo">
-        <div className="demo-head">
-          <div className="row">
-            <h2>Demo</h2>
-            <button className="demo-close" onClick={onClose}>
-              Close
-            </button>
-          </div>
-          <p>
-            Ways to make the house do something without an assistant attached. Each one is a real
-            sequence of real tool calls — the house rules answer them exactly as they would answer
-            an agent, which is why one can stop to ask you.
-          </p>
-        </div>
+    <div className="dock" role="complementary" aria-label="Demo">
+      <p className="dock-hint">{hint ?? RESTING}</p>
 
-        <div className="demo-body">
-          <h3>Scenarios</h3>
+      <div className="dock-row">
+        <div className="dock-scen">
           {scenarios.map((s) => (
             <button
               key={s.id}
-              className={`scen ${s.danger ? "danger" : ""}`}
-              onClick={play(s.run)}
+              className={`pill ${s.danger ? "danger" : ""}`}
+              onClick={s.run}
               disabled={busy}
+              title={s.note}
+              {...shows(s.note)}
             >
-              <b>{s.label}</b>
-              <span>{s.note}</span>
+              {s.label}
             </button>
           ))}
+        </div>
 
-          <h3>For anyone checking the mechanism</h3>
-          <button className="scen" onClick={onSimulator}>
-            <b>Open the tool simulator</b>
-            <span>
-              Call any registered tool by hand, with your own arguments — through Grenz, or through
-              the browser's own getTools() and executeTool() where WebMCP is available.
-            </span>
+        <div className="dock-tools">
+          <button onClick={onSimulator} title={SIM_NOTE} {...shows(SIM_NOTE)}>
+            Tool simulator
+          </button>
+          <button onClick={onReset} {...shows("Put the house back the way it started.")}>
+            Reset
+          </button>
+          <button className="dock-close" onClick={onClose} aria-label="Close the demo bar">
+            ✕
           </button>
         </div>
-
-        <div className="demo-foot">
-          <button onClick={onReset}>Reset the house</button>
-        </div>
-    </aside>
+      </div>
+    </div>
   );
 }
