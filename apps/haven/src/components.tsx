@@ -15,26 +15,21 @@ const ShieldOff = ({ size = 15 }: { size?: number }) => (
   </svg>
 );
 
+/**
+ * The product header. Everything here is something a person who lives in this
+ * house would recognise: is the assistant connected, and is the house
+ * protected. The instruments that exist to break the demo live in DemoBar,
+ * below, deliberately separated — a resident has no reason to sabotage their
+ * own home, and mixing the two made it impossible to tell which was which.
+ */
 export function Header({
   webmcp,
   polyfilled,
   protection,
-  onProtection,
-  widgets,
-  onWidgets,
-  simOpen,
-  onSim,
-  onRunaway,
 }: {
   webmcp: boolean;
   polyfilled: boolean;
   protection: boolean;
-  onProtection: (next: boolean) => void;
-  widgets: boolean;
-  onWidgets: (next: boolean) => void;
-  simOpen: boolean;
-  onSim: () => void;
-  onRunaway: () => void;
 }) {
   return (
     <header className="header">
@@ -42,7 +37,7 @@ export function Header({
         <div className="brand-mark">H</div>
         <div>
           <div className="brand-name">Haven</div>
-          <div className="brand-sub">agent-ready home control</div>
+          <div className="brand-sub">your home, with an assistant</div>
         </div>
       </div>
 
@@ -56,36 +51,77 @@ export function Header({
           }
         >
           <span className="dot" />
-          {!webmcp ? "WebMCP unavailable" : polyfilled ? "WebMCP (polyfill)" : "WebMCP live"}
+          {!webmcp
+            ? "No assistant connected"
+            : polyfilled
+              ? "Assistant connected (demo)"
+              : "Assistant connected"}
         </span>
 
-        <button className="ghost-btn" onClick={onRunaway} title="Fires toggle_light twelve times against a limit of eight">
-          Runaway agent
-        </button>
-
-        <button
-          className={`ghost-btn ${widgets ? "active" : ""}`}
-          onClick={() => onWidgets(!widgets)}
-          title="Loads EcoSaver and Home Insights, which register straight at document.modelContext"
-        >
-          {widgets ? "✓ Third-party scripts" : "Load third-party scripts"}
-        </button>
-
-        <button className={`ghost-btn ${simOpen ? "active" : ""}`} onClick={onSim}>
-          Simulator
-        </button>
-
-        <button
-          className={`shield-toggle ${protection ? "" : "off"}`}
-          onClick={() => onProtection(!protection)}
-          aria-pressed={protection}
-        >
-          {protection ? <Shield /> : <ShieldOff />}
-          Grenz {protection ? "ON" : "OFF"}
-          <span className="switch" />
-        </button>
+        <span className={`pill state-shield ${protection ? "safe" : "unsafe"}`}>
+          {protection ? <Shield size={13} /> : <ShieldOff size={13} />}
+          {protection ? "Protected" : "Not protected"}
+        </span>
       </div>
     </header>
+  );
+}
+
+/**
+ * The exhibit, labelled as one. A judge needs the levers to be obvious; a
+ * resident needs to know these are not their house's controls.
+ */
+export function DemoBar({
+  protection,
+  onProtection,
+  widgets,
+  onWidgets,
+  simOpen,
+  onSim,
+  onRunaway,
+}: {
+  protection: boolean;
+  onProtection: (next: boolean) => void;
+  widgets: boolean;
+  onWidgets: (next: boolean) => void;
+  simOpen: boolean;
+  onSim: () => void;
+  onRunaway: () => void;
+}) {
+  return (
+    <div className="demobar">
+      <span className="demobar-tag">Try to break it</span>
+
+      <button
+        className={`demo-btn ${protection ? "" : "armed"}`}
+        onClick={() => onProtection(!protection)}
+        aria-pressed={!protection}
+        title="Removes the policy layer entirely, so every tool runs the moment it is asked"
+      >
+        {protection ? <ShieldOff size={13} /> : <Shield size={13} />}
+        {protection ? "Turn protection off" : "Turn protection back on"}
+      </button>
+
+      <button
+        className={`demo-btn ${widgets ? "on" : ""}`}
+        onClick={() => onWidgets(!widgets)}
+        title="Loads two partner scripts that register their own tools straight at document.modelContext"
+      >
+        {widgets ? "✓ Partner apps connected" : "Connect partner apps"}
+      </button>
+
+      <button
+        className="demo-btn"
+        onClick={onRunaway}
+        title="Fires the same tool twelve times against a house rule that allows eight a minute"
+      >
+        Assistant stuck in a loop
+      </button>
+
+      <button className={`demo-btn ${simOpen ? "on" : ""}`} onClick={onSim}>
+        Send a request by hand
+      </button>
+    </div>
   );
 }
 

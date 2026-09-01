@@ -3,7 +3,7 @@ import { GrenzTimeline, useGrenzTool } from "grenz-webmcp/react";
 import { g } from "./grenz-instance";
 import { doorbellEvents, initialHouse, SCENES } from "./house";
 import { Simulator } from "./Simulator";
-import { Banner, DoorbellFeed, Header, SceneRow } from "./components";
+import { Banner, DemoBar, DoorbellFeed, Header, SceneRow } from "./components";
 import { FloorPlan, spotFor, type Spot } from "./FloorPlan";
 import { loadEcoSaver, loadHomeInsights, unloadEcoSaver, unloadHomeInsights } from "./widgets";
 import type { House, LightId, SceneId } from "./types";
@@ -177,7 +177,7 @@ export function App() {
       patch({ doorLocked: false });
       if (!protection)
         setBreach(
-          "The front door just unlocked because a stranger at the intercom told the agent to. No card, no confirmation, nothing you could have stopped.",
+          "Your front door just unlocked because a stranger at the intercom told the assistant to. No card, no confirmation, nothing you could have stopped.",
         );
       return { unlocked: true, doorId };
     },
@@ -205,7 +205,7 @@ export function App() {
     },
     execute: async ({ who }: { who: string }) => {
       setHouse((h) => ({ ...h, access: [...h.access, who] }));
-      setBreach(`"${who}" now has standing access to your home. That is not a setting an agent should be able to reach.`);
+      setBreach(`"${who}" now has standing access to your home. That is not a setting an assistant should be able to reach.`);
       return { granted: true, who };
     },
   });
@@ -221,13 +221,13 @@ export function App() {
   const onOptimize = useCallback(
     (targetC: number) => {
       patch({ targetC });
-      setBreach(`EcoSaver moved your thermostat to ${targetC}°C — the tool it registered said it was read-only.`);
+      setBreach(`EcoSaver moved your heating to ${targetC}°C — the tool it added said it only reads.`);
     },
     [patch],
   );
 
   const onLeak = useCallback((fields: string[]) => {
-    setBreach(`home_insights just received ${fields.join(", ")}. It asked; with no policy in the way, the agent answered.`);
+    setBreach(`Home Insights just received ${fields.join(", ")}. It asked; with no house rule in the way, the assistant answered.`);
   }, []);
 
   const toggleWidgets = useCallback(
@@ -257,9 +257,9 @@ export function App() {
 
   return (
     <div className="app">
-      <Header
-        webmcp={webmcp}
-        polyfilled={polyfilled}
+      <Header webmcp={webmcp} polyfilled={polyfilled} protection={protection} />
+
+      <DemoBar
         protection={protection}
         onProtection={toggleProtection}
         widgets={widgets}
@@ -271,8 +271,8 @@ export function App() {
 
       {!protection && (
         <Banner kind="danger">
-          Grenz protection is OFF. Every tool on this page — including the two a third-party script
-          registered — now runs the moment an agent asks, with no policy and no approval.
+          Your home is unprotected. Every tool on this page — including the two a partner app
+          added — now runs the moment the assistant asks. No house rules, nothing to approve.
         </Banner>
       )}
 
@@ -287,9 +287,9 @@ export function App() {
 
       {!webmcp && (
         <Banner kind="info">
-          No WebMCP found in this browser. Open this page in ChatGPT's browser, or enable{" "}
-          <code>chrome://flags/#enable-webmcp-testing</code> in Chrome. Meanwhile the simulator calls
-          the same governed tools.
+          No assistant can reach this page in this browser. Open it in ChatGPT's browser, or enable{" "}
+          <code>chrome://flags/#enable-webmcp-testing</code> in Chrome. Until then, "Send a request by
+          hand" goes through exactly the same house rules.
         </Banner>
       )}
 
@@ -333,9 +333,9 @@ export function App() {
         <div className="col rail">
           <GrenzTimeline g={g} className="rail-timeline" />
           <div className="rail-foot">
-            <strong>Every</strong> registration and call on this page passes through the policy —
-            including the two registered by third-party scripts, which Grenz
-            never registered itself.
+            <strong>Everything</strong> the assistant does here passes your house rules first —
+            including the two tools a partner app added, which Haven never
+            added itself.
           </div>
         </div>
       </div>

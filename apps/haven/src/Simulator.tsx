@@ -103,7 +103,7 @@ export function Simulator({
   return (
     <aside className="sim" aria-label="Tool simulator">
       <div className="sim-head">
-        <h2>Tool simulator</h2>
+        <h2>Send a request by hand</h2>
         <button className="close" onClick={onClose} aria-label="Close simulator">
           ×
         </button>
@@ -125,8 +125,8 @@ export function Simulator({
 
       <div className="sim-note">
         {mode === "grenz"
-          ? "Calls go through the same policy pipeline an agent's calls do. This mode works even with no WebMCP in the browser."
-          : "Calls go out through document.modelContext, exactly as an in-page JavaScript caller would — and land in the same policy."}
+          ? "Goes through exactly the same house rules the assistant's requests do. Works even with no assistant connected."
+          : "Goes out through document.modelContext, exactly as any script on this page would — and lands in the same house rules."}
       </div>
 
       <div className="sim-body">

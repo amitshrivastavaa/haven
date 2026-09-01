@@ -100,26 +100,6 @@ button, input, textarea { font-family: inherit; font-size: inherit; color: inher
 .pill.live { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 35%, transparent); background: var(--ok-soft); }
 .pill.absent { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 35%, transparent); background: var(--warn-soft); }
 
-/* The protection switch: the most important control on the page. */
-.shield-toggle {
-  display: flex; align-items: center; gap: 9px;
-  padding: 5px 12px 5px 10px; border-radius: 999px; cursor: pointer;
-  border: 1px solid var(--accent-line); background: var(--accent-soft); color: var(--accent);
-  font-size: 12px; font-weight: 640; transition: background .15s, border-color .15s, color .15s;
-}
-.shield-toggle.off { background: var(--bad-soft); border-color: color-mix(in srgb, var(--bad) 40%, transparent); color: var(--bad); }
-.shield-toggle svg { flex: none; }
-.switch {
-  width: 30px; height: 17px; border-radius: 999px; position: relative; flex: none;
-  background: currentColor; opacity: .95;
-}
-.switch::after {
-  content: ""; position: absolute; top: 2.5px; left: 2.5px;
-  width: 12px; height: 12px; border-radius: 50%; background: var(--panel);
-  transition: transform .16s cubic-bezier(.3,.8,.4,1);
-}
-.shield-toggle:not(.off) .switch::after { transform: translateX(13px); }
-
 .ghost-btn {
   padding: 5px 11px; border-radius: 8px; cursor: pointer;
   border: 1px solid var(--line); background: var(--panel); color: var(--dim);
@@ -130,6 +110,34 @@ button, input, textarea { font-family: inherit; font-size: inherit; color: inher
 .ghost-btn.active { color: var(--accent); border-color: var(--accent-line); background: var(--accent-soft); }
 
 /* ---------- banners ---------- */
+
+/* The demo bar. Visually a different material from the header above it, so a
+   resident can see at a glance that these are not their house's controls. */
+.demobar {
+  display: flex; align-items: center; gap: 8px; flex: none; flex-wrap: wrap;
+  padding: 8px 18px; background: var(--sunk); border-bottom: 1px solid var(--line);
+}
+.demobar-tag {
+  font-size: 10px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+  color: var(--faint); margin-right: 4px;
+}
+.demo-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px; border-radius: 7px; cursor: pointer;
+  border: 1px dashed var(--line); background: transparent; color: var(--dim);
+  font-size: 11.5px; font-weight: 560; white-space: nowrap;
+  transition: color .12s, border-color .12s, background .12s;
+}
+.demo-btn:hover { color: var(--text); border-color: var(--faint); }
+.demo-btn.on { color: var(--accent); border-color: var(--accent-line); background: var(--accent-soft); border-style: solid; }
+.demo-btn.armed { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 45%, transparent); background: var(--bad-soft); border-style: solid; font-weight: 640; }
+
+/* Protection is a state readout now, not a switch — the switch belongs to the
+   demo bar, because turning your own house's protection off is not a thing a
+   resident does. */
+.pill.state-shield { gap: 5px; }
+.pill.state-shield.safe { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 35%, transparent); background: var(--ok-soft); font-weight: 600; }
+.pill.state-shield.unsafe { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 45%, transparent); background: var(--bad-soft); font-weight: 700; }
 
 .banner {
   display: flex; align-items: center; gap: 10px; flex: none;

@@ -386,7 +386,7 @@ export function grenz(config: GrenzConfig = {}): GrenzInstance {
       decision: verdict.decision,
       reason: verdict.reason,
       message: foreign
-        ? `Third-party script registered "${tool.name}". ${verdict.decision === "deny" ? "It is governed but not permitted to run." : "Governed by policy."}`
+        ? `A partner app added a tool called "${tool.name}". ${verdict.decision === "deny" ? "You can see it, but nothing here lets it run." : "It runs under your house rules."}`
         : `Registered "${tool.name}".`,
       foreign,
       claimedReadOnly: tool.annotations?.readOnlyHint === true,
@@ -445,12 +445,12 @@ export function grenz(config: GrenzConfig = {}): GrenzInstance {
       enabled = next;
       emit({
         kind: "grant",
-        tool: "grenz.protection",
+        tool: "protection",
         decision: next ? "allow" : "unprotected",
         reason: next ? "explicit_allow" : "unprotected",
         message: next
-          ? "Grenz protection ON. Every tool call is governed again."
-          : "Grenz protection OFF. Tool calls run ungoverned — this is what an unprotected page looks like.",
+          ? "Protection is back on. Your house rules apply again."
+          : "Protection is off. Anything the assistant asks for now happens, with nothing in the way.",
       });
     },
     isEnabled: () => enabled,

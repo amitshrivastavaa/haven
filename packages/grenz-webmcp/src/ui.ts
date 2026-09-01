@@ -10,7 +10,7 @@
  */
 
 import type { ApprovalOutcome, ApprovalRequest, GrenzInstance } from "./grenz.ts";
-import type { TimelineEvent } from "./types.ts";
+import type { ReasonCode, TimelineEvent } from "./types.ts";
 
 const PALETTE = `
   :host {
@@ -331,9 +331,32 @@ const TIMELINE_CSS = `
 
 const BADGE: Record<TimelineEvent["decision"], { cls: string; label: string }> = {
   allow: { cls: "b-allow", label: "allowed" },
-  deny: { cls: "b-deny", label: "denied" },
-  require_approval: { cls: "b-approve", label: "approved" },
-  unprotected: { cls: "b-open", label: "ungoverned" },
+  deny: { cls: "b-deny", label: "refused" },
+  require_approval: { cls: "b-approve", label: "you allowed it" },
+  unprotected: { cls: "b-open", label: "unprotected" },
+};
+
+/**
+ * Reason codes, said out loud.
+ *
+ * The codes themselves are the vocabulary a developer greps for, so they are
+ * not thrown away — they move behind the disclosure triangle. What a household
+ * member reads is a sentence about their own house.
+ */
+const REASON: Record<ReasonCode, string> = {
+  explicit_allow: "a house rule allows this",
+  explicit_deny: "a house rule says never",
+  approval_required: "a house rule says ask me first",
+  no_matching_allow: "no house rule covers this",
+  approval_granted: "you said yes",
+  approval_denied: "you said no",
+  approval_expired: "nobody answered in time",
+  approval_abandoned: "the page closed before you answered",
+  approval_remembered_grant: "you allowed this earlier today",
+  annotation_mismatch: "it said it only reads — it writes",
+  constraint: "that value is out of range",
+  rate_limit: "too many times, too fast",
+  unprotected: "protection was off",
 };
 
 export function mountTimelineInto(element: HTMLElement, g: GrenzInstance): () => void {
@@ -344,7 +367,7 @@ export function mountTimelineInto(element: HTMLElement, g: GrenzInstance): () =>
 
   const wrap = el("div", "wrap");
   const top = el("div", "top");
-  const title = el("span", "title", "Audit timeline");
+  const title = el("span", "title", "Assistant activity");
   const count = el("span", "count");
   const clear = el("button", "clear", "Clear");
   clear.addEventListener("click", () => g.clearTimeline());
@@ -360,10 +383,10 @@ export function mountTimelineInto(element: HTMLElement, g: GrenzInstance): () =>
 
     if (events.length === 0) {
       const empty = el("div", "empty");
-      empty.append(el("strong", undefined, "Nothing has happened yet."));
+      empty.append(el("strong", undefined, "Your assistant hasn't done anything yet."));
       empty.append(
         document.createTextNode(
-          "Every tool an agent registers or calls on this page will be recorded here — allowed, denied, or waiting on you.",
+          "When it touches something in your home, it shows up here — what it did, whether it was allowed, and why.",
         ),
       );
       list.append(empty);
@@ -372,7 +395,27 @@ export function mountTimelineInto(element: HTMLElement, g: GrenzInstance): () =>
 
     // Newest first: on a live page the interesting row should never be the one
     // that just scrolled out of view.
-    for (const e of [...events].reverse()) list.append(renderRow(e));
+    //
+    // The page's own tools all register at mount, which would otherwise bury
+    // every interesting row under a wall of "registered X". They collapse into
+    // one line. A *partner* script registering a tool does not collapse — that
+    // one is the news.
+    const ordered = [...events].reverse();
+    for (let i = 0; i < ordered.length; i++) {
+      const e = ordered[i]!;
+      if (e.kind !== "register" || e.foreign) {
+        list.append(renderRow(e));
+        continue;
+      }
+      let j = i;
+      while (j + 1 < ordered.length) {
+        const next = ordered[j + 1]!;
+        if (next.kind !== "register" || next.foreign) break;
+        j++;
+      }
+      list.append(renderOwnTools(ordered.slice(i, j + 1)));
+      i = j;
+    }
   };
 
   const unsubscribe = g.subscribe(render);
@@ -380,6 +423,28 @@ export function mountTimelineInto(element: HTMLElement, g: GrenzInstance): () =>
     unsubscribe();
     root.textContent = "";
   };
+}
+
+/** One line standing in for every tool this page registered itself. */
+function renderOwnTools(events: TimelineEvent[]): HTMLElement {
+  const row = el("div", "row");
+  const head = el("div", "row-top");
+  head.append(
+    el("span", "badge b-open", "ready"),
+    el("span", "tool", `${events.length} tool${events.length === 1 ? "" : "s"} this home offers`),
+    el("span", "time", new Date(events[events.length - 1]!.at).toLocaleTimeString()),
+  );
+  row.append(head);
+
+  const details = document.createElement("details");
+  details.append(el("summary", undefined, "which ones"));
+  const pre = el("pre");
+  // Newest-first above, but a plain list of capabilities reads better in the
+  // order the page offered them.
+  pre.textContent = [...events].reverse().map((e) => `${e.tool} — ${REASON[e.reason!] ?? e.reason}`).join("\n");
+  details.append(pre);
+  row.append(details);
+  return row;
 }
 
 function renderRow(e: TimelineEvent): HTMLElement {
@@ -396,22 +461,33 @@ function renderRow(e: TimelineEvent): HTMLElement {
   row.append(head, el("div", "msg", e.message));
 
   const flags: HTMLElement[] = [];
-  if (e.foreign) flags.push(el("span", "flag", "third-party"));
+  if (e.foreign) flags.push(el("span", "flag", "partner app"));
   if (e.claimedReadOnly) {
     // A read-only claim is only suspicious when something else about the tool
     // is. Flagging an honest annotation in red teaches the reader to ignore
     // the colour, which costs us the one moment it needs to be believed.
     const doubted = e.decision === "deny" || e.foreign === true;
     flags.push(
-      el("span", doubted ? "flag warn" : "flag", doubted ? "claims readOnly" : "readOnly"),
+      el("span", doubted ? "flag warn" : "flag", doubted ? "claims it only reads" : "only reads"),
     );
   }
   // Unlike a readOnly claim, this one is a disclosure of risk rather than of
   // safety, so it is worth a colour whether or not the tool is otherwise
   // doubted — the content is untrusted either way.
-  if (e.untrustedContent) flags.push(el("span", "flag warn", "untrusted content"));
-  if (e.requestedFields?.length) flags.push(el("span", "flag warn", `asks for ${e.requestedFields.length} field${e.requestedFields.length === 1 ? "" : "s"}`));
-  if (e.reason) flags.push(el("span", "flag", e.reason));
+  if (e.untrustedContent) flags.push(el("span", "flag warn", "written by a stranger"));
+  if (e.requestedFields?.length)
+    flags.push(
+      el(
+        "span",
+        "flag warn",
+        `wants ${e.requestedFields.length} thing${e.requestedFields.length === 1 ? "" : "s"} about you`,
+      ),
+    );
+  if (e.reason) {
+    const flag = el("span", "flag", REASON[e.reason] ?? e.reason);
+    flag.title = e.reason; // the code a developer greps for, one hover away
+    flags.push(flag);
+  }
   if (flags.length) {
     const bar = el("div", "flags");
     bar.append(...flags);
@@ -420,7 +496,7 @@ function renderRow(e: TimelineEvent): HTMLElement {
 
   if (e.description) {
     const details = document.createElement("details");
-    details.append(el("summary", undefined, "what the agent was told"));
+    details.append(el("summary", undefined, "what the assistant was told"));
     const quote = el("pre");
     quote.textContent = e.description;
     details.append(quote);
@@ -429,7 +505,7 @@ function renderRow(e: TimelineEvent): HTMLElement {
 
   if (e.requestedFields?.length) {
     const details = document.createElement("details");
-    details.append(el("summary", undefined, "what the agent was asked to provide"));
+    details.append(el("summary", undefined, "what it wanted from you"));
     const quote = el("pre");
     quote.textContent = e.requestedFields.join("\n");
     details.append(quote);
@@ -438,7 +514,7 @@ function renderRow(e: TimelineEvent): HTMLElement {
 
   if (e.input !== undefined || e.result !== undefined) {
     const details = document.createElement("details");
-    details.append(el("summary", undefined, "arguments & result"));
+    details.append(el("summary", undefined, "what it sent, and what it got back"));
     const pre = el("pre");
     const parts: string[] = [];
     if (e.input !== undefined) parts.push(`input:\n${prettyArgs(e.input)}`);
