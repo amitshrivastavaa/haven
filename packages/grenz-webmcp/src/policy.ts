@@ -82,10 +82,18 @@ export function evaluate(
     return {
       decision: "deny",
       reason: "annotation_mismatch",
+      // `effect` is written for the approval card, where it is the consequence
+      // of the call — "anyone outside can walk in". Quoting it here as though
+      // it were a description of the write forced every site to choose between
+      // a sentence that reads on the card and one that reads in this denial.
+      // Given its own sentence, either shape works. It is also quoted without
+      // surrounding punctuation, so a site's full stop no longer collides with
+      // the frame's.
       message:
-        `"${name}" registered with readOnlyHint: true, but the site classifies it as a write` +
-        `${policy.effect ? ` ("${policy.effect}")` : " requiring approval"}. ` +
-        `A tool's description must match what it does.`,
+        `"${name}" registered with readOnlyHint: true, but the site's policy classifies it ` +
+        `as a write.` +
+        `${policy.effect ? ` The site says: ${policy.effect}` : ""}` +
+        ` A tool's description must match what it does.`,
     };
   }
 

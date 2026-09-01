@@ -52,6 +52,22 @@ describe("step 2 — annotation mismatch", () => {
     expect(r.reason).toBe("annotation_mismatch");
   });
 
+  // The message is what an agent reads back, and what the tool simulator
+  // shows. It is also the one place `effect` is quoted outside the approval
+  // card, so it has to read whether the site wrote a consequence
+  // ("anyone outside can walk in") or an action ("changes the setpoint").
+  test("the denial explains itself without mangling the site's sentence", () => {
+    const site = { action: "approve", effect: "Anyone outside can walk in." } as const;
+    const r = evaluate({ tools: { d: site } }, "d", { readOnlyHint: true });
+    expect(r.message).toBe(
+      `"d" registered with readOnlyHint: true, but the site's policy classifies it as a write. ` +
+        `The site says: Anyone outside can walk in. ` +
+        `A tool's description must match what it does.`,
+    );
+    // No doubled full stop where the site's sentence ends.
+    expect(r.message).not.toMatch(/\.\s*\./);
+  });
+
   test("a genuine read-only tool is untouched", () => {
     expect(evaluate(config, "get_house_state", { readOnlyHint: true }).decision).toBe("allow");
   });

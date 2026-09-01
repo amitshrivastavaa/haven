@@ -88,7 +88,7 @@ export const rules: Record<string, Rule> = {
   // annotation is a denial, not a warning.
   eco_optimize: {
     action: "approve",
-    effect: "Lets EcoSaver change your thermostat setpoint.",
+    effect: "Your heating moves, and EcoSaver is not part of Haven.",
     // The level is the argument that matters, so it stays in the sentence.
     describe: ({ aggressiveness }) =>
       `Let EcoSaver change your heating${aggressiveness ? ` (level ${aggressiveness})` : ""}`,
