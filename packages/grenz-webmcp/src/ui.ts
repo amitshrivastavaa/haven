@@ -14,38 +14,22 @@ import type { ReasonCode, TimelineEvent } from "./types.ts";
 
 const PALETTE = `
   :host {
-    --g-bg: #ffffff;
-    --g-surface: #f7f7f8;
-    --g-text: #18181b;
-    --g-dim: #71717a;
-    --g-line: #e4e4e7;
-    --g-allow: #15803d;
-    --g-allow-bg: #dcfce7;
-    --g-deny: #b91c1c;
-    --g-deny-bg: #fee2e2;
-    --g-approve: #b45309;
-    --g-approve-bg: #fef3c7;
-    --g-open: #2563eb;
-    --g-open-bg: #eff4ff;
-    --g-font: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    --g-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
-  }
-  @media (prefers-color-scheme: dark) {
-    :host {
-      --g-bg: #18181b;
-      --g-surface: #232327;
-      --g-text: #fafafa;
-      --g-dim: #a1a1aa;
-      --g-line: #34343a;
-      --g-allow: #4ade80;
-      --g-allow-bg: #14351f;
-      --g-deny: #f87171;
-      --g-deny-bg: #3d1a1a;
-      --g-approve: #fbbf24;
-      --g-approve-bg: #3a2c0d;
-      --g-open: #7da6ff;
-      --g-open-bg: #14203a;
-    }
+    --g-bg: #0E1014;
+    --g-surface: #14171C;
+    --g-text: #F2F0EC;
+    --g-dim: #8A8F99;
+    --g-line: #1E2229;
+    --g-allow: #3DD68C;
+    --g-allow-bg: #0D2419;
+    --g-deny: #FF4D4D;
+    --g-deny-bg: #2A1113;
+    --g-approve: #FFB627;
+    --g-approve-bg: #2A1E08;
+    --g-open: #6E9BFF;
+    --g-open-bg: #121A2B;
+    --g-font: Archivo, ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --g-display: "Instrument Serif", Georgia, "Times New Roman", serif;
+    --g-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   }
 `;
 
@@ -84,8 +68,8 @@ const CARD_CSS = `
   ${PALETTE}
   .backdrop {
     position: fixed; inset: 0; pointer-events: auto;
-    background: color-mix(in srgb, #09090b 55%, transparent);
-    backdrop-filter: blur(3px);
+    background: color-mix(in srgb, #050609 78%, transparent);
+    backdrop-filter: blur(5px);
     display: grid; place-items: center; padding: 24px;
     font-family: var(--g-font);
     animation: fade .16s ease-out;
@@ -110,14 +94,16 @@ const CARD_CSS = `
   .countdown { margin-left: auto; font-variant-numeric: tabular-nums; font-size: 12px; color: var(--g-dim) }
   .body { padding: 20px }
   .ask { font-size: 13px; color: var(--g-dim); margin: 0 0 6px }
-  .tool { font-size: 19px; font-weight: 640; margin: 0 0 14px; letter-spacing: -.01em }
-  .tool code { font-family: var(--g-mono); font-size: 15px; color: var(--g-dim); font-weight: 500 }
+  .tool { font-size: 20px; font-weight: 600; margin: 0 0 16px; letter-spacing: -.01em }
+  .tool code { font-family: var(--g-mono); font-size: 14px; color: var(--g-dim); font-weight: 400 }
   .effect {
-    display: flex; gap: 10px; padding: 13px 14px; border-radius: 10px;
-    background: var(--g-approve-bg); color: var(--g-approve);
-    font-size: 14px; line-height: 1.45; font-weight: 550; margin-bottom: 16px;
+    display: flex; gap: 11px; padding: 0 0 18px; margin-bottom: 18px;
+    border-bottom: 1px solid var(--g-line);
+    color: var(--g-approve);
+    font-family: var(--g-display); font-weight: 400;
+    font-size: 27px; line-height: 1.15; letter-spacing: -.01em;
   }
-  .effect svg { flex: none; margin-top: 1px }
+  .effect svg { flex: none; margin-top: 7px }
   .args-label { font-size: 11px; font-weight: 650; letter-spacing: .05em; text-transform: uppercase; color: var(--g-dim); margin-bottom: 6px }
   pre.args {
     margin: 0 0 16px; padding: 12px; border-radius: 10px;
@@ -177,7 +163,7 @@ function showCard(request: ApprovalRequest): Promise<ApprovalOutcome> {
     head.append(countdown);
 
     const body = el("div", "body");
-    body.append(el("p", "ask", "An AI agent is asking to run a tool on this page."));
+    body.append(el("p", "ask", "Your assistant is asking to do something in your home."));
 
     const tool = el("h2", "tool");
     tool.id = "g-tool";
@@ -190,7 +176,7 @@ function showCard(request: ApprovalRequest): Promise<ApprovalOutcome> {
     effect.append(el("span", undefined, request.effect));
     body.append(effect);
 
-    body.append(el("div", "args-label", "Arguments the agent supplied"));
+    body.append(el("div", "args-label", "Exactly what it asked for"));
     body.append(el("pre", "args", prettyArgs(request.input)));
 
     const remember = el("label", "remember");
@@ -278,13 +264,13 @@ const TIMELINE_CSS = `
   ${PALETTE}
   .wrap {
     pointer-events: auto; height: 100%; display: flex; flex-direction: column;
-    font-family: var(--g-font); color: var(--g-text); background: var(--g-bg);
+    font-family: var(--g-font); color: var(--g-text); background: transparent;
   }
   .top {
     display: flex; align-items: center; gap: 8px; padding: 12px 14px;
     border-bottom: 1px solid var(--g-line); flex: none;
   }
-  .title { font-size: 13px; font-weight: 650; letter-spacing: -.01em }
+  .title { font-family: var(--g-display); font-weight: 400; font-size: 19px; letter-spacing: 0 }
   .count { font-size: 11px; color: var(--g-dim); font-variant-numeric: tabular-nums }
   .clear {
     margin-left: auto; background: none; border: 1px solid var(--g-line); color: var(--g-dim);
@@ -295,8 +281,8 @@ const TIMELINE_CSS = `
   .empty { padding: 40px 22px; text-align: center; color: var(--g-dim); font-size: 13px; line-height: 1.6 }
   .empty strong { display: block; color: var(--g-text); font-size: 13.5px; margin-bottom: 5px; font-weight: 600 }
   .row {
-    border: 1px solid var(--g-line); border-radius: 10px; padding: 9px 11px;
-    margin-bottom: 6px; background: var(--g-bg); animation: slide .2s ease-out;
+    border: 1px solid var(--g-line); border-radius: 10px; padding: 11px 13px;
+    margin-bottom: 7px; background: var(--g-bg); animation: slide .2s ease-out;
   }
   @keyframes slide { from { opacity: 0; transform: translateY(-4px) } to { opacity: 1; transform: none } }
   .row-top { display: flex; align-items: center; gap: 7px; margin-bottom: 3px }
