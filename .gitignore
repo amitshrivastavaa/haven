@@ -16,3 +16,8 @@ VOICEOVER.md
 # Netlify CLI link state and local build cache. Site id is not secret, but it
 # is this machine's link to a site, not part of the project.
 .netlify/
+
+# Secrets. Never committed; the Netlify PAT lives here.
+.env
+.env.*
+!.env.example
