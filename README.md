@@ -245,7 +245,10 @@ prototype from the live `ModelContext` instance and patches `registerTool`, so
 every registration — yours, or a third-party script's — is wrapped before an
 agent can reach it. A tool nobody vouched for still registers, but its
 implementation is unreachable; the agent gets a structured denial and the
-timeline gets a visible entry.
+timeline gets a visible entry. That claim has one measured exception, in a
+browser that seals the surface against every script including this one — see
+[Verified against ChatGPT's in-app
+browser](#verified-against-chatgpts-in-app-browser--and-one-guarantee-it-removes).
 
 **Both of WebMCP's registration paths, not just the imperative one.** A
 declarative tool — `<form toolname="…" tooldescription="…">` — is created by the
@@ -461,6 +464,71 @@ laxer polyfill is how it stayed hidden: **`executeTool(tool, args)` takes its
 arguments as a JSON string**, not an object, and rejects an object with
 *"Failed to parse input arguments"*. The demo's polyfill now matches that
 contract rather than being more permissive than the API it stands in for.
+
+### Verified against ChatGPT's in-app browser — and one guarantee it removes
+
+Native Chrome is where WebMCP is specified. ChatGPT's in-app browser is where
+this challenge's users are, and it does not implement WebMCP the same way: it
+injects its own object and **hardens it against every script on the page**,
+Grenz included. Measured against the deployed site on 2 September 2026, the page
+printing the browser's own descriptors:
+
+```
+document.modelContext        own data, configurable=false, writable=false
+  the object it holds        frozen  →  registerTool cannot be replaced
+navigator.modelContext       absent
+```
+
+Non-configurable means the property cannot be redefined, deleted, or shadowed by
+anyone — so neither patching the method nor claiming the accessor is possible,
+and there is no third place to stand. This is deliberate hardening by the
+browser vendor rather than a bug to route around, and it is the strongest
+counter-argument this project has to answer honestly.
+
+**Six of seven guarantees survive it. One does not.**
+
+| | native Chrome | ChatGPT's browser |
+|---|---|---|
+| the site's own tools governed — cards, denials, limits, constraints | ✅ | ✅ |
+| annotations reach the client correctly (`2 read, 8 write`) | ✅ | ✅ |
+| a denial comes back as a readable result, never an exception | ✅ | ✅ |
+| an injected `<form toolname>` adopted and refused | ✅ | ✅ |
+| approval requires an event the page cannot forge | ✅ | ✅ |
+| the passkey ceremony — server challenge, server-verified signature | ✅ | ✅ |
+| **a third-party script's own `registerTool` call intercepted** | ✅ | ❌ **sealed** |
+
+Two things follow, and both changed the code rather than only the prose.
+
+**Declarative adoption must not be gated on the takeover.** It was, and that was
+free ground given away: adoption does not intercept a call, it strips
+`toolname` — which unregisters the browser's own tool — and registers a governed
+one in its place. That works on a surface nobody can patch, and it is the
+*lower* attacker bar of the two, since writing HTML does not require running
+script. It now runs wherever a model context exists, wrapping on the way through
+when the surface is not ours.
+
+**A tool with no annotations is not a tool that reads.** ChatGPT's Site tools
+menu buckets on `readOnlyHint`, and an absent annotation lands in neither
+bucket — it first reported *"10 tools · 2 read, 0 write"*, because only the two
+reads were annotated. A client cannot tell "this changes nothing" from "nobody
+filled it in", which is the exact ambiguity this library refuses to let a
+third-party tool trade on. Every write now says `readOnlyHint: false`.
+
+The page does not hide any of this. The header carries `registerTool sealed` on
+every screen, the **Agent tools** panel states what still holds and what does
+not, and the browser's own descriptors sit behind the same technical-detail
+switch as every other raw payload.
+
+Two results from that browser are worth reporting because nobody scripted them.
+Asked to *"unlock the door"*, ChatGPT read the `inputSchema` enum and asked
+**"Which door should I unlock: front or back?"** rather than guessing; the call
+was then intercepted, held open for 21 seconds while the approval card waited,
+and refused — which it reported as *"The front door remains locked—the site
+denied the unlock action during its approval step."* A model distinguishing a
+policy `no` from a crash, unprompted, is what the readable-denials decision was
+for. Approved on a second attempt, the full passkey ceremony completed and the
+door opened: WebAuthn is available in that browser, so the strong path is the
+one it takes.
 
 ## Design notes
 
