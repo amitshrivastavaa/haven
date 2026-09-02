@@ -117,6 +117,77 @@ function prototypesToPatch(): object[] {
 }
 
 /**
+ * Second-choice takeover: claim the accessor instead of the method.
+ *
+ * Measured in ChatGPT's in-app browser, which does not implement WebMCP the way
+ * Chrome does — it injects a polyfill object and hardens it, so
+ * `defineProperty` on its `registerTool` throws and the takeover above claims
+ * nothing. The page then governs its own tools (see `registerTool` in
+ * grenz.ts) and nothing else, which is the one guarantee this library exists to
+ * make.
+ *
+ * A frozen object still has to be *reached*, and it is reached through
+ * `document.modelContext`. So this replaces that property with a facade that
+ * forwards everything except `registerTool`. Any script asking the document for
+ * the model context — which is the only way a third party finds it — gets the
+ * governed surface.
+ *
+ * It is strictly weaker than owning the method, and the difference is worth
+ * being exact about: whoever already holds a direct reference to the real
+ * object still bypasses this, including the browser's own bridge. That is fine
+ * for the bridge and it is the limit for an attacker who captured the object
+ * before Grenz loaded. Every method other than `registerTool` is bound to the
+ * real object, so a native implementation does not throw on an illegal
+ * invocation through the facade.
+ *
+ * The facade proxies an EMPTY object and forwards by hand, which looks like the
+ * long way round. It is the only way round. A proxy whose target is the real
+ * object may not return a different value for a non-configurable, non-writable
+ * property — and `Object.freeze` makes every property exactly that, including
+ * the `registerTool` this needs to replace. Proxying the real object throws a
+ * TypeError on the first read of it. An empty target owns nothing, so there is
+ * no invariant left to violate.
+ */
+export function claimAccessor(): boolean {
+  const hosts: object[] = [];
+  if (typeof document !== "undefined") hosts.push(document);
+  if (typeof navigator !== "undefined") hosts.push(navigator);
+
+  for (const host of hosts) {
+    const real = (host as { modelContext?: object }).modelContext;
+    if (!real || typeof real !== "object") continue;
+    const original = (real as ModelContextLike).registerTool;
+    if (typeof original !== "function") continue;
+
+    const patchedRegisterTool = (tool: ToolDescriptor, options?: RegisterOptions): Promise<void> =>
+      original.call(real as ModelContextLike, applyWrapper(tool, options, !state.firstPartyDepth), options);
+
+    const facade = new Proxy(
+      {},
+      {
+        get(_target, prop) {
+          if (prop === "registerTool") return patchedRegisterTool;
+          const value = (real as Record<string | symbol, unknown>)[prop];
+          return typeof value === "function" ? value.bind(real) : value;
+        },
+        has: (_target, prop) => prop in real,
+      },
+    );
+
+    try {
+      // Same sealing rationale as the method patch: left configurable, one
+      // `delete document.modelContext` restores the ungoverned object.
+      Object.defineProperty(host, "modelContext", { configurable: false, get: () => facade });
+      state.patched.push({ proto: real, original });
+    } catch {
+      // The accessor is sealed too. There is no third place to stand, and the
+      // page says so rather than implying a takeover it did not get.
+    }
+  }
+  return state.patched.length > 0;
+}
+
+/**
  * Patch the registration surface. Idempotent, and safe to call when WebMCP is
  * absent (it simply reports false — Grenz still governs its own registry, which
  * is what the simulator reads).
@@ -170,6 +241,11 @@ export function install(): boolean {
       // still governs its own registrations; see `registerTool` in grenz.ts.
     }
   }
+
+  // Owning the method is the strong form and it failed — the surface is
+  // frozen. Fall back to owning the way it is reached, which is weaker but is
+  // the difference between governing third-party registrations and not.
+  if (state.patched.length === 0) claimAccessor();
 
   // The imperative surface is only half of WebMCP. Declarative `<form
   // toolname=…>` tools never pass through `registerTool`, so patching alone

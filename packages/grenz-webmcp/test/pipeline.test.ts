@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { grenz, type ApprovalRequest, type Approver, type GrenzInstance } from "../src/grenz.ts";
-import { __resetForTests } from "../src/takeover.ts";
+import { __resetForTests, claimAccessor } from "../src/takeover.ts";
 import type { GrenzConfig, GrenzDenial, ToolDescriptor } from "../src/types.ts";
 
 /**
@@ -614,10 +614,73 @@ describe("a name already taken cannot be taken again", () => {
   });
 });
 
-// NOTE: the "takeover could not claim the surface" path is deliberately not
-// unit-tested here. The takeover state is a page global reached through
-// `Symbol.for`, and `__resetForTests` keeps `patched` on purpose so a shared
-// test prototype is never wrapped twice — so `isInstalled()` cannot be forced
-// false in this file, and a test that pretended otherwise would assert nothing.
-// It is covered end to end instead: load the app with the deferred polyfill,
-// which is the same late-arrival ordering ChatGPT's in-app browser produces.
+/**
+ * ChatGPT's in-app browser, reproduced. It does not implement WebMCP natively —
+ * it injects a polyfill object and hardens it — so `defineProperty` on its
+ * `registerTool` throws and the method patch claims nothing. Measured on the
+ * deployed site: the page governed its own ten tools and no others.
+ *
+ * `claimAccessor` is called directly rather than through `install()`, which
+ * short-circuits once anything at all is patched — by this point in the file,
+ * something is.
+ */
+describe("a registration surface that cannot be patched", () => {
+  test("is still governed, through the property that hands it out", async () => {
+    const seen: ToolDescriptor[] = [];
+    const frozen = Object.freeze({
+      registerTool: async (tool: ToolDescriptor) => {
+        seen.push(tool);
+      },
+      getTools: async () => seen,
+    });
+    // The premise. If this ever stops throwing, the method patch would have
+    // worked and the fallback under test is answering a question nobody asked.
+    expect(() =>
+      Object.defineProperty(frozen, "registerTool", { value: () => {} }),
+    ).toThrow();
+
+    const doc = { modelContext: frozen };
+    const previous = (globalThis as any).document;
+    (globalThis as any).document = doc;
+    try {
+      const g = grenz(baseConfig);
+      expect(claimAccessor()).toBe(true);
+      // What a third-party script actually holds is no longer the real object.
+      expect(doc.modelContext).not.toBe(frozen);
+
+      await registerAsThirdParty(evilTool());
+      const stored = seen.find((t) => t.name === "finalize_access")!;
+      expect(stored).toBeDefined();
+      expect(stored.execute).not.toBe(evilTool().execute);
+
+      const result = await stored.execute({ doorId: "door-1" }, { signal: new AbortController().signal });
+      expect(denialOf(result).reason).toBe("no_matching_allow");
+      expect(submitted).toEqual([]);
+      void g;
+    } finally {
+      (globalThis as any).document = previous;
+    }
+  });
+
+  test("forwards everything else to the real object, bound to it", async () => {
+    const real = Object.freeze({
+      registerTool: async () => {},
+      getTools(this: { marker: string }) {
+        // Throws "undefined is not an object" if the facade forwarded the
+        // method unbound — which is how a native implementation fails.
+        return this.marker;
+      },
+      marker: "the real one",
+    });
+    const doc = { modelContext: real };
+    const previous = (globalThis as any).document;
+    (globalThis as any).document = doc;
+    try {
+      expect(claimAccessor()).toBe(true);
+      expect((doc.modelContext as any).getTools()).toBe("the real one");
+      expect((doc.modelContext as any).marker).toBe("the real one");
+    } finally {
+      (globalThis as any).document = previous;
+    }
+  });
+});
