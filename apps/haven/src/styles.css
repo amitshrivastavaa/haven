@@ -759,3 +759,19 @@ body.tech .ev .tk { display: block; }
   .sim-detail { padding: 12px 14px 14px; }
   .sim-fields { grid-template-columns: 1fr; }
 }
+
+/* The takeover's own account of why it failed. Monospace because every one of
+   these is a property descriptor or an exception message, and both are read
+   character by character. */
+.why-blocked {
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+  font: 11px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace;
+  opacity: 0.85;
+  overflow-wrap: anywhere;
+}
+.why-blocked li::before {
+  content: "→ ";
+  opacity: 0.5;
+}

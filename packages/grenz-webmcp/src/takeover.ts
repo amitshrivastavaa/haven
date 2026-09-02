@@ -56,6 +56,16 @@ interface TakeoverState {
   firstPartyDepth: number;
   /** Tears down the declarative-form observer. Test-only; production never stops. */
   stopDeclarative: (() => void) | null;
+  /**
+   * Why the takeover did not claim the surface, in the browser's own words.
+   *
+   * A page that says "could not take over" and nothing else is untestable from
+   * the outside: every hardened WebMCP implementation looks identical from
+   * here. These strings are rendered next to that warning so the reason is
+   * visible in the one place the failure actually happens — someone else's
+   * browser, which is never the one holding a debugger.
+   */
+  blocked: string[];
 }
 
 /**
@@ -81,6 +91,7 @@ const state: TakeoverState = ((globalThis as unknown as Record<symbol, TakeoverS
   queued: [],
   firstPartyDepth: 0,
   stopDeclarative: null,
+  blocked: [],
 });
 
 export function modelContext(): ModelContextLike | undefined {
@@ -114,6 +125,33 @@ function prototypesToPatch(): object[] {
     }
   }
   return out;
+}
+
+/** At most a handful, deduped: this is read by a person, not a log pipeline. */
+function note(line: string): void {
+  if (state.blocked.length < 6 && !state.blocked.includes(line)) state.blocked.push(line);
+}
+
+function describe(err: unknown): string {
+  const message = err instanceof Error ? err.message : String(err);
+  return message.slice(0, 120);
+}
+
+/**
+ * The property as the browser holds it. Which of the two flags is false says
+ * what would have to change for a takeover to be possible at all, and whether
+ * it is an own property or an inherited one says where to look.
+ */
+function descriptorOf(target: object, key: string): string {
+  let owner: object | null = target;
+  while (owner && !Object.prototype.hasOwnProperty.call(owner, key)) {
+    owner = Object.getPrototypeOf(owner) as object | null;
+  }
+  if (!owner) return `${key}: no own descriptor on the chain`;
+  const d = Object.getOwnPropertyDescriptor(owner, key)!;
+  const where = owner === target ? "own" : "inherited";
+  const kind = d.get || d.set ? "accessor" : "data";
+  return `${where} ${kind}, configurable=${d.configurable}, writable=${d.writable ?? "n/a"}, frozen=${Object.isFrozen(owner)}`;
 }
 
 /**
@@ -154,10 +192,17 @@ export function claimAccessor(): boolean {
   if (typeof navigator !== "undefined") hosts.push(navigator);
 
   for (const host of hosts) {
+    const name = host === (globalThis as { document?: object }).document ? "document" : "navigator";
     const real = (host as { modelContext?: object }).modelContext;
-    if (!real || typeof real !== "object") continue;
+    if (!real || typeof real !== "object") {
+      note(`${name}.modelContext: ${real === undefined ? "absent" : typeof real}`);
+      continue;
+    }
     const original = (real as ModelContextLike).registerTool;
-    if (typeof original !== "function") continue;
+    if (typeof original !== "function") {
+      note(`${name}.modelContext.registerTool: ${typeof original}, not a function`);
+      continue;
+    }
 
     const patchedRegisterTool = (tool: ToolDescriptor, options?: RegisterOptions): Promise<void> =>
       original.call(real as ModelContextLike, applyWrapper(tool, options, !state.firstPartyDepth), options);
@@ -179,9 +224,10 @@ export function claimAccessor(): boolean {
       // `delete document.modelContext` restores the ungoverned object.
       Object.defineProperty(host, "modelContext", { configurable: false, get: () => facade });
       state.patched.push({ proto: real, original });
-    } catch {
+    } catch (err) {
       // The accessor is sealed too. There is no third place to stand, and the
       // page says so rather than implying a takeover it did not get.
+      note(`accessor: ${describe(err)} · ${descriptorOf(host, "modelContext")}`);
     }
   }
   return state.patched.length > 0;
@@ -234,11 +280,12 @@ export function install(): boolean {
       },
       });
       state.patched.push({ proto: owner, original });
-    } catch {
+    } catch (err) {
       // Someone sealed this surface first — another policy layer, a hardened
       // browser, or an attacker who won the load race. It is not ours, so it is
       // not recorded as ours, and `isInstalled()` stays false. The instance
       // still governs its own registrations; see `registerTool` in grenz.ts.
+      note(`method: ${describe(err)} · ${descriptorOf(owner, "registerTool")}`);
     }
   }
 
@@ -302,6 +349,11 @@ export function isInstalled(): boolean {
   return state.patched.length > 0;
 }
 
+/** Why the takeover failed. Empty when it succeeded, or was never attempted. */
+export function takeoverDiagnosis(): string[] {
+  return state.patched.length > 0 ? [] : [...state.blocked];
+}
+
 /**
  * Test-only. Restores the original methods and clears state. Production code
  * must never un-patch — see the header.
@@ -321,4 +373,5 @@ export function __resetForTests(): void {
   state.wrapper = null;
   state.queued = [];
   state.firstPartyDepth = 0;
+  state.blocked = [];
 }

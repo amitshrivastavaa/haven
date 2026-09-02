@@ -11,7 +11,7 @@ export {
 export type { EngineResult } from "./policy.ts";
 export { findOutOfReach, watchFrames } from "./reconcile.ts";
 export type { OutOfReach } from "./reconcile.ts";
-export { install, isInstalled, modelContext } from "./takeover.ts";
+export { install, isInstalled, modelContext, takeoverDiagnosis } from "./takeover.ts";
 export type { RegistryEntry } from "./takeover.ts";
 export type {
   Constraint,

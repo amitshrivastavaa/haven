@@ -540,6 +540,15 @@ export function App() {
           the browser sees them — but a <strong>third-party script registering a tool here would
           not be intercepted</strong>. Everything else on this page is true; that one guarantee is
           not.
+          {/* The reason, in the browser's own words. Every hardened WebMCP
+              implementation looks identical from the outside, and the browsers
+              that harden it are the ones nobody can attach a debugger to — so
+              the page reports what it found instead of leaving it to guesswork. */}
+          <ul className="why-blocked">
+            {g.takeoverDiagnosis().map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
         </Banner>
       )}
 

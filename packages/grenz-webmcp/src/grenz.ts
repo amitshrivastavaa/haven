@@ -16,6 +16,7 @@ import {
   modelContext,
   registerAsFirstParty,
   registry,
+  takeoverDiagnosis,
   type RegistryEntry,
 } from "./takeover.ts";
 import type { PresenceMode, Verifier } from "./presence.ts";
@@ -82,6 +83,12 @@ export interface GrenzInstance {
   isEnabled(): boolean;
   /** Whether a native WebMCP registration surface was found and patched. */
   isTakeoverInstalled(): boolean;
+  /**
+   * Why it was not, when it was not. Empty on success. Shown on the page rather
+   * than logged: the browsers that harden WebMCP are the ones nobody can attach
+   * a debugger to.
+   */
+  takeoverDiagnosis(): string[];
   /**
    * Compare what the browser will offer an agent against what Grenz governs,
    * and record anything it has never seen. Runs on its own when a frame loads;
@@ -570,6 +577,7 @@ export function grenz(config: GrenzConfig = {}): GrenzInstance {
     },
     isEnabled: () => enabled,
     isTakeoverInstalled: () => isInstalled(),
+    takeoverDiagnosis,
 
     async auditTools() {
       const found = await findOutOfReach(modelContext(), (name) => registry().has(name));
