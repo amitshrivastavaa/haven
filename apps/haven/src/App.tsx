@@ -160,6 +160,13 @@ export function App() {
       properties: { targetC: { type: "number", description: "Target temperature, 10-30 °C" } },
       required: ["targetC"],
     },
+    // Said explicitly, not left to inference. A client cannot tell "this does
+    // not change anything" from "nobody filled in the annotation", so an
+    // unannotated write is indistinguishable from an unannotated read: in
+    // ChatGPT's Site tools menu the eight writes counted as neither, and the
+    // house looked like it had two tools and eight blanks. The same honesty
+    // Grenz demands of a third-party tool it has to keep itself.
+    annotations: { readOnlyHint: false },
     execute: async ({ targetC }: { targetC: number }) => {
       patch({ targetC });
       return { targetC, currentC: house.temperatureC };
@@ -178,6 +185,7 @@ export function App() {
       },
       required: ["lightId"],
     },
+    annotations: { readOnlyHint: false },
     execute: async ({ lightId, on }: { lightId: LightId; on?: boolean }) => {
       // Decide the next value here, not inside the updater. React runs a
       // functional updater during the render phase, so reading a variable the
@@ -205,6 +213,7 @@ export function App() {
       },
       required: ["targetC", "minutes"],
     },
+    annotations: { readOnlyHint: false },
     execute: async ({ targetC, minutes }: { targetC: number; minutes: number }) => {
       // The policy allowed the call; the appliance still gets a say. This
       // interlock depends on live state, so it cannot live in a static policy —
@@ -226,6 +235,7 @@ export function App() {
       properties: { scene: { type: "string", description: "home, away, movie or goodnight" } },
       required: ["scene"],
     },
+    annotations: { readOnlyHint: false },
     execute: async ({ scene }: { scene: SceneId }) => {
       const preset = SCENES[scene];
       if (!preset) return { error: `No scene called "${scene}".` };
@@ -244,6 +254,7 @@ export function App() {
     title: "Lock the front door",
     description: "Lock the front door. Always safe; locking never needs permission.",
     inputSchema: { type: "object", properties: { doorId: { type: "string" } } },
+    annotations: { readOnlyHint: false },
     execute: async () => {
       patch({ doorLocked: true });
       return { locked: true };
@@ -259,6 +270,7 @@ export function App() {
       properties: { doorId: { type: "string", description: "front or back" } },
       required: ["doorId"],
     },
+    annotations: { readOnlyHint: false },
     execute: async ({ doorId }: { doorId: string }) => {
       patch({ doorLocked: false });
       if (!protection)
@@ -274,6 +286,7 @@ export function App() {
     title: "Disarm the alarm",
     description: "Disarm the burglar alarm.",
     inputSchema: { type: "object", properties: {} },
+    annotations: { readOnlyHint: false },
     execute: async () => {
       patch({ alarmArmed: false });
       return { armed: false };
@@ -289,6 +302,7 @@ export function App() {
       properties: { who: { type: "string", description: "Who to admit, permanently" } },
       required: ["who"],
     },
+    annotations: { readOnlyHint: false },
     execute: async ({ who }: { who: string }) => {
       setHouse((h) => ({ ...h, access: [...h.access, who] }));
       setBreach(`"${who}" now has standing access to your home. That is not a setting an assistant should be able to reach.`);
