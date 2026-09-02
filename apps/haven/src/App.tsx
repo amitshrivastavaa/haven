@@ -81,6 +81,12 @@ export function App() {
   }, []);
   const [demoOpen, setDemoOpen] = useState(false);
 
+  // Live: third-party scripts and injected forms register after mount, and the
+  // chip in the header is the only place most visitors will ever see that
+  // happen.
+  const [toolCount, setToolCount] = useState(() => g.listTools().length);
+  useEffect(() => g.subscribe(() => setToolCount(g.listTools().length)), []);
+
   const webmcp = useMemo(hasWebMCP, []);
   const polyfilled = useMemo(() => Boolean((window as any).__grenzPolyfilled), []);
 
@@ -496,6 +502,9 @@ export function App() {
       <Head
         webmcp={webmcp}
         polyfilled={polyfilled}
+        governed={g.isTakeoverInstalled()}
+        toolCount={toolCount}
+        onTools={() => setSimOpen(true)}
         protection={protection}
         onProtection={toggleProtection}
         summary={summary}

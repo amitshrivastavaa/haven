@@ -506,16 +506,29 @@ export function grenz(config: GrenzConfig = {}): GrenzInstance {
 
   const api: GrenzInstance = {
     async registerTool(tool, options) {
+      // WebMCP can arrive late. ChatGPT's in-app browser injects it after
+      // `grenz-install.js` has already run in <head>, so a takeover that found
+      // nothing at startup has to be retried rather than given up on. Cheap:
+      // `install()` short-circuits once anything is actually patched.
+      if (!isInstalled()) install();
+
       const mc = modelContext();
-      if (mc) {
+      if (mc && isInstalled()) {
         // Route through the native surface so the patch is the single funnel —
         // no second code path to keep in sync with the takeover.
         await registerAsFirstParty(() => mc.registerTool(tool, options));
         return;
       }
-      // No WebMCP on this page. The registry (and therefore the simulator) is
-      // still the source of truth, so the demo works with the API absent.
-      wrap(tool, options, false);
+
+      // Either there is no WebMCP, or there is one this build could not take
+      // over. Both used to fall through to a bare `wrap()` whose result was
+      // discarded, which was fine with no WebMCP and quietly wrong with it:
+      // the tool reached the browser UNWRAPPED and never entered the registry,
+      // so `listTools()` said zero and nothing on the page was governed at all.
+      // Wrapping here keeps the registry honest either way, and the browser is
+      // handed the governed tool rather than the raw one.
+      const wrapped = wrap(tool, options, false);
+      if (mc) await mc.registerTool(wrapped, options);
     },
 
     listTools: () => [...registry().values()],

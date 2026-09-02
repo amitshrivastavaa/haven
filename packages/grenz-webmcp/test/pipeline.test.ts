@@ -613,3 +613,11 @@ describe("a name already taken cannot be taken again", () => {
     expect(g.getTimeline().filter((e) => e.reason === "name_collision")).toHaveLength(0);
   });
 });
+
+// NOTE: the "takeover could not claim the surface" path is deliberately not
+// unit-tested here. The takeover state is a page global reached through
+// `Symbol.for`, and `__resetForTests` keeps `patched` on purpose so a shared
+// test prototype is never wrapped twice — so `isInstalled()` cannot be forced
+// false in this file, and a test that pretended otherwise would assert nothing.
+// It is covered end to end instead: load the app with the deferred polyfill,
+// which is the same late-arrival ordering ChatGPT's in-app browser produces.

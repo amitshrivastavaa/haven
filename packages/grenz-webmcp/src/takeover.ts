@@ -135,8 +135,6 @@ export function install(): boolean {
     const original = (owner as unknown as ModelContextLike).registerTool;
     if (typeof original !== "function") continue;
 
-    state.patched.push({ proto: owner, original });
-
     // Sealed, and that is the point. Left configurable/writable, the exact
     // attacker this exists to stop removes the whole policy layer in one line:
     // `delete document.modelContext.registerTool` restores the prototype's
@@ -145,7 +143,10 @@ export function install(): boolean {
     // of the page. It does not save a page whose attacker wins the load race
     // and patches first; it removes the much cheaper move of undoing a
     // takeover that already happened.
-    Object.defineProperty(owner, "registerTool", {
+    // Recorded only once the property is actually ours. Pushing first would
+    // report a takeover that a throw below never completed.
+    try {
+      Object.defineProperty(owner, "registerTool", {
       configurable: false,
       writable: false,
       value: function patchedRegisterTool(
@@ -160,7 +161,14 @@ export function install(): boolean {
         const wrapped = applyWrapper(tool, options, foreign);
         return original.call(this, wrapped, options);
       },
-    });
+      });
+      state.patched.push({ proto: owner, original });
+    } catch {
+      // Someone sealed this surface first — another policy layer, a hardened
+      // browser, or an attacker who won the load race. It is not ours, so it is
+      // not recorded as ours, and `isInstalled()` stays false. The instance
+      // still governs its own registrations; see `registerTool` in grenz.ts.
+    }
   }
 
   // The imperative surface is only half of WebMCP. Declarative `<form

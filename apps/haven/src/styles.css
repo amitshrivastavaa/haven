@@ -186,6 +186,25 @@ code { font-family: var(--mono); }
    refusal, and this row exists precisely because there was not one. */
 .ev.warn .d { background: var(--stop-soft); color: var(--warm); }
 .ev.warn { box-shadow: inset 2px 0 0 var(--warm); }
+
+/* The tool chip. Sits in the header beside the protection switch because the
+   two together are the whole claim: this many tools, governed by these rules.
+   Monospace count — it is a machine's number. */
+.toolchip {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 14px 8px 9px; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--panel);
+  font: 500 12.5px/1 var(--font); color: var(--dim);
+  cursor: pointer; transition: border-color .16s ease, color .16s ease;
+}
+.toolchip:hover { border-color: var(--accent-line); color: var(--text); }
+.toolchip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.toolchip-n {
+  display: grid; place-items: center; min-width: 24px; height: 24px;
+  padding: 0 6px; border-radius: 999px;
+  background: var(--accent); color: var(--on-accent);
+  font: 600 12px/1 var(--mono); font-variant-numeric: tabular-nums;
+}
 .ev b { display: block; font-size: 13px; font-weight: 700; line-height: 1.35; }
 .ev span { font-size: 12px; color: var(--dim); line-height: 1.45; }
 .ev .tk { margin-top: 5px; font-family: var(--mono); font-size: 10.5px; color: var(--faint); display: none; word-break: break-word; }

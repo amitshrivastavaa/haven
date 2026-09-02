@@ -24,22 +24,29 @@ const VIEWS: { id: View; label: string }[] = [
 export function Head({
   webmcp,
   polyfilled,
+  governed,
   protection,
   onProtection,
   summary,
   view,
   onView,
   refused,
+  toolCount,
+  onTools,
   onPitch,
 }: {
   webmcp: boolean;
   polyfilled: boolean;
+  /** Whether the takeover actually claimed this browser's registration surface. */
+  governed: boolean;
   protection: boolean;
   onProtection: (next: boolean) => void;
   summary: string;
   view: View;
   onView: (v: View) => void;
   refused: number;
+  toolCount: number;
+  onTools: () => void;
   onPitch: () => void;
 }) {
   return (
@@ -59,11 +66,18 @@ export function Head({
                 : "document.modelContext"
             }
           >
+            {/* "connected" and "governed" are two different claims and used to
+                be one word. A browser can expose WebMCP on a surface this
+                build could not take over — then an agent sees the tools and
+                the rules do not, which is the one state the header must not
+                describe as normal. */}
             {!webmcp
               ? "no assistant connected"
-              : polyfilled
-                ? "assistant connected (demo)"
-                : "assistant connected"}
+              : !governed
+                ? "assistant connected · NOT governed"
+                : polyfilled
+                  ? "assistant connected (demo)"
+                  : "assistant connected"}
           </span>
         </p>
       </div>
@@ -87,6 +101,15 @@ export function Head({
           </button>
         ))}
       </nav>
+
+      {/* What an agent can actually see, on every view, one click from trying
+          it. The tools were only ever countable on the pitch and callable from
+          a drawer behind a demo dock — which hid the single thing this project
+          is about. */}
+      <button className="toolchip" onClick={onTools} title="Open the tool simulator">
+        <span className="toolchip-n">{toolCount}</span>
+        {toolCount === 1 ? "tool an agent can use" : "tools an agent can use"}
+      </button>
 
       <button
         className={`guard ${protection ? "on" : "off"}`}
