@@ -7,6 +7,7 @@
  */
 
 import { RateLimiter, checkConstraints, evaluate } from "./policy.ts";
+import { findOutOfReach, watchFrames } from "./reconcile.ts";
 import { mountApprovalCard, mountTimelineInto } from "./ui.ts";
 import {
   attachWrapper,
@@ -81,6 +82,13 @@ export interface GrenzInstance {
   isEnabled(): boolean;
   /** Whether a native WebMCP registration surface was found and patched. */
   isTakeoverInstalled(): boolean;
+  /**
+   * Compare what the browser will offer an agent against what Grenz governs,
+   * and record anything it has never seen. Runs on its own when a frame loads;
+   * call it directly to force a pass. Resolves with the names reported by THIS
+   * pass — a name already on the timeline is not reported twice.
+   */
+  auditTools(): Promise<string[]>;
   /** Tools carrying an "approve for the session" grant. */
   sessionGrants(): string[];
   revokeSessionGrants(): void;
@@ -107,6 +115,8 @@ export function grenz(config: GrenzConfig = {}): GrenzInstance {
   const grants = new Set<string>();
   let enabled = true;
   let approver: Approver | null = null;
+  /** Names already reported as out of reach, so a re-audit is not a re-report. */
+  const reported = new Set<string>();
 
   function emit(event: Omit<TimelineEvent, "id" | "at">): TimelineEvent {
     const full: TimelineEvent = { ...event, id: `e${++eventSeq}`, at: clock() };
@@ -547,6 +557,31 @@ export function grenz(config: GrenzConfig = {}): GrenzInstance {
     },
     isEnabled: () => enabled,
     isTakeoverInstalled: () => isInstalled(),
+
+    async auditTools() {
+      const found = await findOutOfReach(modelContext(), (name) => registry().has(name));
+      const fresh: string[] = [];
+      for (const tool of found) {
+        if (reported.has(tool.name)) continue;
+        reported.add(tool.name);
+        fresh.push(tool.name);
+        emit({
+          kind: "register",
+          tool: tool.name,
+          // Not a denial. Grenz is not in this call's path, so there is no
+          // decision to report — "unprotected" is the same word used when
+          // someone switches protection off, and means the same thing here.
+          decision: "unprotected",
+          reason: "out_of_reach",
+          message: tool.fromFrame
+            ? `"${tool.name}" was registered by a frame on this page. Your rules never saw it, and cannot stop it.`
+            : `"${tool.name}" is offered to agents but never passed through your rules.`,
+          foreign: true,
+          ...(tool.description ? { description: tool.description } : {}),
+        });
+      }
+      return fresh;
+    },
     sessionGrants: () => [...grants],
     revokeSessionGrants() {
       grants.clear();
@@ -555,6 +590,11 @@ export function grenz(config: GrenzConfig = {}): GrenzInstance {
       approver = next;
     },
   };
+
+  // A frame finishing its load is the one moment the parent can know new tools
+  // may exist. Started after `api` is built so the first pass has something to
+  // call. Never stopped: the page keeps this for its lifetime, like the takeover.
+  watchFrames(() => void api.auditTools(), { scheduler: schedule });
 
   return api;
 }

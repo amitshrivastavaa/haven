@@ -36,6 +36,13 @@ export type ReasonCode =
    * for the tool it displaced.
    */
   | "name_collision"
+  /**
+   * On `getTools()`, but never through this document's registry — so no
+   * decision was made about it and none can be. A same-origin frame registers
+   * into its own realm and the browser lists the result in the parent's tools;
+   * see reconcile.ts. Reported, never claimed as a refusal.
+   */
+  | "out_of_reach"
   /** An argument violated a policy constraint. */
   | "constraint"
   /** Sliding-window rate limit exceeded. */

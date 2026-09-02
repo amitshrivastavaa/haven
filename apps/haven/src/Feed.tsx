@@ -30,11 +30,24 @@ const Eye = () => (
   </svg>
 );
 
+/**
+ * Reserved for the one case the other three would misreport: a tool that is
+ * live and reachable and that no rule here ever judged. A cross is a refusal
+ * and a tick is a grant; this is the absence of both.
+ */
+const Warn = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 3.6 1.8 20.4h20.4z" />
+    <path d="M12 10v4.2M12 17.4v.1" />
+  </svg>
+);
+
 const WHY: Record<string, string> = {
   explicit_deny: "A house rule says never.",
   no_matching_allow: "No house rule covers it.",
   annotation_mismatch: "It said it only reads. It writes.",
   name_collision: "It tried to take the name of a tool you already have.",
+  out_of_reach: "It was added from a frame on this page, where your rules do not run.",
   approval_synthetic: "Something clicked Approve that was not you.",
   approval_present: "You proved it was you, and Haven's server checked the signature.",
   presence_unverified: "A passkey answered, but nothing off this page checked it.",
@@ -104,7 +117,7 @@ function did(e: TimelineEvent): string {
 
 export interface Line {
   id: string;
-  kind: "ok" | "no" | "eye";
+  kind: "ok" | "no" | "eye" | "warn";
   title: string;
   detail: string;
   technical: string;
@@ -126,18 +139,26 @@ export function toLine(e: TimelineEvent): Line | null {
     // A collision is not an addition — nothing was added, and saying so would
     // read as though the impostor is now on the page under that name.
     const squatted = e.reason === "name_collision";
+    // Out of reach is neither. The tool is real, callable, and nothing here
+    // decided anything about it, so it must not borrow the wording of a
+    // refusal OR of a tool running under the rules. It gets its own line.
+    const unreachable = e.reason === "out_of_reach";
     return {
       id: e.id,
-      kind: squatted ? "no" : "eye",
-      title: squatted
-        ? `A script tried to register its own "${e.tool}"`
-        : `A partner app added "${e.tool}"`,
+      kind: squatted ? "no" : unreachable ? "warn" : "eye",
+      title: unreachable
+        ? `A frame on this page added "${e.tool}"`
+        : squatted
+          ? `A script tried to register its own "${e.tool}"`
+          : `A partner app added "${e.tool}"`,
       detail: [
-        squatted
-          ? "The name was already taken, so the tool you have is the one that answered."
-          : e.decision === "deny"
-            ? "You can see it, but nothing here lets it run."
-            : "It runs under your house rules.",
+        unreachable
+          ? "Your assistant can call it. Your house rules never saw it and cannot stop it."
+          : squatted
+            ? "The name was already taken, so the tool you have is the one that answered."
+            : e.decision === "deny"
+              ? "You can see it, but nothing here lets it run."
+              : "It runs under your house rules.",
         e.requestedFields?.length ? `It wants ${e.requestedFields.join(", ")}.` : "",
       ]
         .filter(Boolean)
@@ -193,7 +214,9 @@ export function useLines(): Line[] {
 export function EventRow({ line }: { line: Line }) {
   return (
     <div className={`ev ${line.kind}`}>
-      <div className="d">{line.kind === "no" ? <Nope /> : line.kind === "eye" ? <Eye /> : <Tick />}</div>
+      <div className="d">
+        {line.kind === "no" ? <Nope /> : line.kind === "warn" ? <Warn /> : line.kind === "eye" ? <Eye /> : <Tick />}
+      </div>
       <div>
         <b>{line.title}</b>
         {line.detail && <span>{line.detail}</span>}
@@ -220,15 +243,24 @@ export function TechToggle() {
 export function ActivityCard() {
   const lines = useLines();
   const refused = lines.filter((l) => l.kind === "no").length;
+  // Counted apart from refusals, and said even when nothing was refused: a
+  // tool the rules cannot reach is the one thing "Nothing needs you" would be
+  // wrong about.
+  const unreachable = lines.filter((l) => l.kind === "warn").length;
+  const lead =
+    [
+      refused > 0 ? `${refused} ${refused === 1 ? "request" : "requests"} stopped.` : "",
+      unreachable > 0
+        ? `${unreachable} ${unreachable === 1 ? "tool" : "tools"} your rules cannot reach.`
+        : "",
+    ]
+      .filter(Boolean)
+      .join(" ") || "Nothing needs you.";
 
   return (
     <div className="card">
       <h2>Activity</h2>
-      <p className="lead">
-        {refused > 0
-          ? `${refused} ${refused === 1 ? "request" : "requests"} stopped.`
-          : "Nothing needs you."}
-      </p>
+      <p className="lead">{lead}</p>
 
       <div className="feed">
         {lines.length === 0 ? (

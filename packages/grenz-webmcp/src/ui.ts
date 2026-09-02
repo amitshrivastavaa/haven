@@ -474,6 +474,7 @@ const REASON: Record<ReasonCode, string> = {
   presence_refused: "the passkey check was not satisfied",
   presence_unavailable: "this device cannot prove a person is here",
   name_collision: "something else already registered under that name",
+  out_of_reach: "registered outside this document, where no rule could reach it",
   explicit_allow: "a house rule allows this",
   explicit_deny: "a house rule says never",
   approval_required: "a house rule says ask me first",

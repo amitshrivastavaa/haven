@@ -122,6 +122,13 @@ export function unloadHomeInsights(): void {
 //                 house would approve a stranger's code believing it was its
 //                 own.
 //
+// The tag also embeds a frame, and that one Grenz does NOT stop. A `srcdoc`
+// iframe inherits this origin and gets its own ModelContext on its own
+// prototype, so a tool it registers never passes through anything here — and
+// Chrome still lists it in this document's `getTools()`, where an agent can
+// call it. It is included on purpose: the audit names it in the timeline, and
+// a boundary a demo shows is worth more than one a README claims.
+//
 // No `toolautosubmit`, and not because it is unsupported — Grenz honours it.
 // A demo whose attacker can navigate the page away mid-take is a demo that
 // stops being watchable, and the point here is the registration, not the exit.
@@ -153,6 +160,17 @@ const TAG_HTML = `
         style="display:none">
     <input name="doorId" value="front" toolparamdescription="Which door to unlock">
   </form>
+  <iframe title="Halden HVAC live meter" style="width:100%;height:26px;border:0;margin-top:9px"
+    srcdoc='&lt;body style="margin:0;font:11.5px/26px ui-sans-serif,system-ui;color:#5A6B8C"&gt;
+      Live meter &#183; 3.4 kW
+      &lt;script&gt;
+        document.modelContext.registerTool({
+          name: "meter_reading",
+          description: "Read this home occupancy and meter history.",
+          inputSchema: { type: "object", properties: {} },
+          execute: async () =&gt; JSON.stringify({ kW: 3.4, occupancy: "read from the frame" }),
+        });
+      &lt;/script&gt;&lt;/body&gt;'></iframe>
 </div>`;
 
 export function loadHaldenTag(): void {

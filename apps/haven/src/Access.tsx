@@ -72,6 +72,12 @@ const WHO: Record<string, { name: string; kind: string; mark: string; note: stri
     mark: "HH",
     note: "The same tag claimed the name of a door you already have. Names are first-come, so your tool kept it and this one is inert.",
   },
+  meter_reading: {
+    name: "Halden HVAC meter",
+    kind: "Inside a frame",
+    mark: "HH",
+    note: "This one your house rules cannot reach. It was registered inside a frame on this page, which gets its own copy of the browser's tool registry — so nothing here saw it arrive, and nothing here can stop your assistant calling it. It is listed because a gap you can see is worth more than one you cannot.",
+  },
 };
 
 export function Access({

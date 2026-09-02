@@ -182,6 +182,10 @@ code { font-family: var(--mono); }
 .ev.no .d { background: var(--stop-soft); color: var(--stop); }
 .ev.ok .d { background: var(--safe-soft); color: var(--safe); }
 .ev.eye .d { background: var(--warm-soft); color: var(--warm); }
+/* Not stop-red: nothing was stopped. Amber on a red ground would read as a
+   refusal, and this row exists precisely because there was not one. */
+.ev.warn .d { background: var(--stop-soft); color: var(--warm); }
+.ev.warn { box-shadow: inset 2px 0 0 var(--warm); }
 .ev b { display: block; font-size: 13px; font-weight: 700; line-height: 1.35; }
 .ev span { font-size: 12px; color: var(--dim); line-height: 1.45; }
 .ev .tk { margin-top: 5px; font-family: var(--mono); font-size: 10.5px; color: var(--faint); display: none; word-break: break-word; }
