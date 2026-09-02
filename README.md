@@ -12,7 +12,7 @@ timeline.
 > The seatbelt for the agent-native web — the human sees and approves what the
 > agent is about to do, on the page where it happens.
 
-[**Live demo**](#) · [Library](packages/grenz-webmcp) · [Demo source](apps/haven) · MIT
+[**Live demo**](https://grenz-webmcp.netlify.app) · [Library](packages/grenz-webmcp) · [Demo source](apps/haven) · MIT
 
 ---
 
@@ -74,7 +74,7 @@ attack tool lies about.
 ## Quickstart
 
 ```bash
-bun add grenz-webmcp
+bun add grenz-webmcp   # not on npm yet — until then, clone and `bun install`
 ```
 
 ```html
@@ -396,8 +396,10 @@ up on the front door.
 Note that WebMCP is **secure-context only**: `document.modelContext` is absent on
 `about:blank` and on plain-HTTP origins other than localhost, flag or no flag.
 
-**Without one:** the demo detects the absence, explains it in a banner, and opens
-the simulator, which drives the same governed tools from Grenz's own registry.
+**Without one:** the demo detects the absence and says so in a banner, and the
+page's own assistant box drives the same governed tools through the identical
+pipeline. The simulator — same registry, arguments built from each tool's
+schema — is one button away in **Agent tools**, or straight in with `?sim`.
 Adding `?polyfill=1` activates a small, clearly-labelled WebMCP stand-in so the
 full flow — including the approval card — can be exercised in any browser.
 
@@ -564,8 +566,8 @@ it can retry into.
 ## Not built, deliberately
 
 No accounts, no credential vault, no editable arguments in the approval card, no
-`exposedTo` / cross-origin tool sharing, no service-worker or declarative
-`<form>` tools. The one hosted component is `/api/presence`, which exists
+`exposedTo` / cross-origin tool sharing, and no service-worker tools. The one
+hosted component is `/api/presence`, which exists
 because a page cannot verify its own proof; everything else runs in the page,
 and the demo degrades to unverified approvals rather than refusing them when it
 is absent. Foreign registrations are wrapped and denied
