@@ -12,8 +12,11 @@ mock.module("@netlify/blobs", () => ({
   }),
 }));
 
+// One directory up on purpose: Netlify treats every top-level file in the
+// functions directory as a function to bundle and deploy, so a test living
+// beside the handler ships as an endpoint of its own.
 const { default: handler } = await import(
-  "./presence.mts"
+  "../functions/presence.mts"
 );
 
 const URL_ = "https://haven.example/api/presence";
