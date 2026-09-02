@@ -764,6 +764,7 @@ body.tech .ev .tk { display: block; }
    these is a property descriptor or an exception message, and both are read
    character by character. */
 .why-blocked {
+  display: none;
   margin: 10px 0 0;
   padding: 0;
   list-style: none;
@@ -771,6 +772,7 @@ body.tech .ev .tk { display: block; }
   opacity: 0.85;
   overflow-wrap: anywhere;
 }
+body.tech .why-blocked { display: block; }
 .why-blocked li::before {
   content: "→ ";
   opacity: 0.5;

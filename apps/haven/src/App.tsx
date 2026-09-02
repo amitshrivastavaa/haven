@@ -546,31 +546,6 @@ export function App() {
         </Banner>
       )}
 
-      {/* Never in the header line: that line truncates, and this is the one
-          state that must not be missed — an agent can see the site's tools
-          while the interception that governs OTHER scripts is not attached. */}
-      {webmcp && !g.isTakeoverInstalled() && (
-        <Banner kind="danger">
-          This browser seals WebMCP against every script on the page, Grenz included:{" "}
-          <code>document.modelContext</code> cannot be redefined and the object it holds is frozen,
-          so <code>registerTool</code> could not be claimed. Haven's own tools are still governed —
-          they are wrapped before the browser sees them — and an injected <code>&lt;form
-          toolname&gt;</code> is still adopted and governed, because adoption strips the attribute
-          rather than intercepting a call. What is lost is one thing: a{" "}
-          <strong>third-party script calling <code>registerTool</code> directly would not be
-          intercepted</strong>.
-          {/* The reason, in the browser's own words. Every hardened WebMCP
-              implementation looks identical from the outside, and the browsers
-              that harden it are the ones nobody can attach a debugger to — so
-              the page reports what it found instead of leaving it to guesswork. */}
-          <ul className="why-blocked">
-            {g.takeoverDiagnosis().map((line) => (
-              <li key={line}>{line}</li>
-            ))}
-          </ul>
-        </Banner>
-      )}
-
       {!webmcp && (
         <Banner kind="info">
           No assistant can reach this page in this browser. Open it in ChatGPT's browser, or enable{" "}

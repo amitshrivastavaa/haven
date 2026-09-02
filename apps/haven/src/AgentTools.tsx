@@ -99,7 +99,17 @@ export function AgentTools({
         <div className="sheet-body">
           {/* Three states, and the third is the awkward one. A page that only
               says "connected" when the interception is missing is the failure
-              this panel would be most likely to hide. */}
+              this panel would be most likely to hide.
+
+              This used to be a red banner across the front page. It was the
+              right fact in the wrong place: a full-width danger stripe on
+              first load reads as "this site is broken" to someone who has not
+              read a word yet, and it said the same thing twice once this panel
+              existed. It is not softened here — the sentence is unchanged and
+              the descriptors are one toggle away — it is filed under the
+              heading it belongs to. The header still carries "registerTool
+              sealed" on every screen, so nothing about it is discoverable only
+              by opening this. */}
           <div className={`at-status ${webmcp ? (governed ? "ok" : "part") : "off"}`}>
             <b>
               {!webmcp
@@ -113,8 +123,19 @@ export function AgentTools({
                 ? "Everything below is registered and governed anyway — the box on the home screen goes through the identical pipeline, so you can try any of it without one."
                 : governed
                   ? "Grenz owns the registration surface, so a tool added by any script on this page arrives here too, and under the same rules."
-                  : "Haven's own tools and any injected form are still governed. What this browser prevents is intercepting a third-party script's own registerTool call."}
+                  : "This browser makes document.modelContext and the object it holds unwritable, so no script on the page can claim registerTool — Grenz included. Haven's own tools and any injected form are still governed. What is lost is intercepting a third-party script's own registerTool call."}
             </span>
+            {/* The exception and the property descriptor that caused it, for
+                the one reader who wants to check the claim rather than take
+                it. Behind the same technical-detail switch as everything else
+                of its kind, because it is the browser's words, not ours. */}
+            {webmcp && !governed && (
+              <ul className="why-blocked">
+                {g.takeoverDiagnosis().map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+            )}
           </div>
 
           <section className="at-grid">
