@@ -851,3 +851,6 @@ body.tech .why-blocked { display: block; }
   background: var(--accent); color: var(--on-accent); font-size: 13px; font-weight: 700;
   cursor: pointer;
 }
+/* The passkey answer sits inside the status block rather than beside the two
+   tools that need it: it is a fact about the browser, not about a tool. */
+.at-passkey { display: block; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); }

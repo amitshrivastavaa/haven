@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { presenceAvailable } from "grenz-webmcp";
 import type { GrenzInstance, ToolAction } from "grenz-webmcp";
 import { rules } from "./policy";
 
@@ -73,6 +74,20 @@ export function AgentTools({
   useEffect(() => g.subscribe(() => setTools(g.listTools())), [g]);
   const governed = g.isTakeoverInstalled();
 
+  // Asked, not assumed. Two of these tools ask for a passkey, and whether this
+  // browser can supply one is a property of the browser — in an embedded
+  // webview it often cannot. Reporting it here means nobody has to unlock a
+  // door to find out, and the answer is the browser's, through the same call
+  // the approval card makes.
+  const [passkey, setPasskey] = useState<boolean | null>(null);
+  useEffect(() => {
+    let live = true;
+    void presenceAvailable().then((ok) => live && setPasskey(ok));
+    return () => {
+      live = false;
+    };
+  }, []);
+
   return (
     <div className="sheet-veil" onClick={onClose}>
       <div
@@ -135,6 +150,13 @@ export function AgentTools({
                   <li key={line}>{line}</li>
                 ))}
               </ul>
+            )}
+            {passkey !== null && (
+              <span className="at-passkey">
+                {passkey
+                  ? "This browser can prove a person is present with a passkey, so the two approvals that ask for one get the strong check."
+                  : "No passkey authenticator in this browser. The two approvals that ask for one still stop and ask you — a real click carries them on its own, and the timeline records that the weaker check was used."}
+              </span>
             )}
           </div>
 
