@@ -775,3 +775,77 @@ body.tech .ev .tk { display: block; }
   content: "→ ";
   opacity: 0.5;
 }
+
+/* ==========================================================================
+   Agent tools — the reference to the Simulator's console.
+
+   Cards rather than the rules screen's rows: a row works when every item is
+   one line, and a tool carries a name, a title, a sentence and a handful of
+   qualifiers. The verdict chip is the rules screen's chip, unchanged, because
+   it is the same claim and a second visual language for it would read as a
+   second meaning.
+   ========================================================================== */
+.at-status {
+  padding: 14px 16px; margin-bottom: 20px; border-radius: 12px;
+  background: var(--sunk); border: 1px solid var(--line);
+  border-left-width: 3px;
+}
+.at-status.ok { border-left-color: var(--safe); }
+.at-status.part { border-left-color: var(--warm); }
+.at-status.off { border-left-color: var(--line); }
+.at-status b { display: block; font-size: 13.5px; font-weight: 700; margin-bottom: 4px; }
+.at-status span { font-size: 12.5px; color: var(--dim); line-height: 1.6; }
+
+.at-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(258px, 1fr)); gap: 12px; }
+.at-tool {
+  padding: 13px 14px; border-radius: 12px;
+  background: var(--panel); border: 1px solid var(--line);
+}
+.at-tool-top { display: flex; align-items: center; gap: 10px; margin-bottom: 7px; }
+.at-tool-top code { font-family: var(--mono); font-size: 11px; color: var(--dim); word-break: break-all; }
+.at-verdict {
+  margin-left: auto; flex: none; padding: 3px 8px; border-radius: 6px;
+  font-size: 10.5px; font-weight: 700; white-space: nowrap;
+  background: var(--sunk); border: 1px solid var(--line);
+}
+.at-verdict.c-allow { color: var(--safe); }
+.at-verdict.c-ask { color: var(--warm); }
+.at-verdict.c-never { color: var(--stop); }
+.at-tool b { display: block; font-size: 13.5px; font-weight: 700; }
+.at-tool p { margin: 4px 0 0; font-size: 12px; color: var(--dim); line-height: 1.5; }
+.at-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+.at-tags span {
+  padding: 2px 7px; border-radius: 5px; background: var(--sunk);
+  font-family: var(--mono); font-size: 10px; color: var(--faint);
+}
+.at-tags .at-foreign { color: var(--warm); background: var(--warm-soft); }
+
+.at-ask { margin-top: 26px; }
+.at-ask h2 {
+  margin: 0 0 10px; font-family: var(--mono); font-size: 10px; font-weight: 500;
+  letter-spacing: .2em; text-transform: uppercase; color: var(--faint);
+}
+.at-prompt {
+  display: block; width: 100%; text-align: left; margin-bottom: 8px;
+  padding: 11px 14px; border-radius: 11px;
+  background: var(--panel); border: 1px solid var(--line); cursor: pointer;
+  transition: border-color .16s ease;
+}
+.at-prompt:hover { border-color: var(--accent-line); }
+.at-prompt:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.at-prompt b { display: block; font-size: 13.5px; font-weight: 600; }
+.at-prompt span { display: block; margin-top: 3px; font-size: 12px; color: var(--faint); line-height: 1.5; }
+.at-note { margin: 10px 0 0; font-size: 12px; color: var(--faint); line-height: 1.6; max-width: 62ch; }
+
+.at-foot {
+  display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+  margin-top: 26px; padding-top: 20px; border-top: 1px solid var(--line-soft);
+}
+.at-foot div { flex: 1; min-width: 220px; }
+.at-foot b { display: block; font-size: 13.5px; font-weight: 700; margin-bottom: 3px; }
+.at-foot span { font-size: 12px; color: var(--dim); line-height: 1.55; }
+.at-sim {
+  flex: none; padding: 10px 18px; border-radius: 10px;
+  background: var(--accent); color: var(--on-accent); font-size: 13px; font-weight: 700;
+  cursor: pointer;
+}

@@ -3,6 +3,7 @@ import { useGrenzTool } from "grenz-webmcp/react";
 import { g } from "./grenz-instance";
 import { doorbellEvents, initialHouse, SCENES } from "./house";
 import { Simulator } from "./Simulator";
+import { AgentTools } from "./AgentTools";
 import { Banner, DoorbellFeed, Head, RulesCard, Scenes, type View } from "./components";
 import { ActivityCard, useLines } from "./Feed";
 import { Access } from "./Access";
@@ -52,6 +53,7 @@ export function App() {
   const [widgets, setWidgets] = useState(false);
   const [breach, setBreach] = useState<string | null>(null);
   const [simOpen, setSimOpen] = useState(() => new URLSearchParams(location.search).has("sim"));
+  const [toolsOpen, setToolsOpen] = useState(false);
   const [agent, setAgent] = useState<{ at: Spot; blocked: boolean } | null>(null);
   const [busy, setBusy] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
@@ -518,7 +520,7 @@ export function App() {
         polyfilled={polyfilled}
         governed={g.isTakeoverInstalled()}
         toolCount={toolCount}
-        onTools={() => setSimOpen(true)}
+        onTools={() => setToolsOpen(true)}
         protection={protection}
         onProtection={toggleProtection}
         summary={summary}
@@ -672,6 +674,25 @@ export function App() {
           onSimulator={() => setSimOpen(true)}
           onClose={() => setDemoOpen(false)}
         />
+      {toolsOpen && (
+        <AgentTools
+          g={g}
+          webmcp={webmcp}
+          // A visitor with no agent still gets to run the prompt, through the
+          // page's own stand-in and the identical pipeline. Home is where that
+          // box lives, so going there is part of asking.
+          onAsk={(text) => {
+            setToolsOpen(false);
+            if (view !== "home") go("home");
+            void send(text);
+          }}
+          onSimulator={() => {
+            setToolsOpen(false);
+            setSimOpen(true);
+          }}
+          onClose={() => setToolsOpen(false)}
+        />
+      )}
       {simOpen && <Simulator g={g} webmcp={webmcp} onClose={() => setSimOpen(false)} />}
     </div>
   );
