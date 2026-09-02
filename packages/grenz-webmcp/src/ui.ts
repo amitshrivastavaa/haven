@@ -10,7 +10,7 @@
  */
 
 import type { ApprovalOutcome, ApprovalRequest, GrenzInstance } from "./grenz.ts";
-import { provePresence } from "./presence.ts";
+import { presenceAvailable, provePresence } from "./presence.ts";
 import type { ReasonCode, TimelineEvent } from "./types.ts";
 
 const PALETTE = `
@@ -188,6 +188,7 @@ const CARD_CSS = `
   .deny { background: var(--g-bg); color: var(--g-text); border-color: var(--g-line) }
   .approve { background: var(--g-text); color: var(--g-bg) }
   .keys { margin: 12px 0 0; text-align: center; font-size: 11.5px; color: var(--g-dim) }
+  .no-presence { margin: 0 0 12px; font-size: 12px; line-height: 1.5; color: var(--g-dim) }
   kbd {
     font-family: var(--g-mono); font-size: 10.5px; padding: 1px 5px; border-radius: 4px;
     border: 1px solid var(--g-line); background: var(--g-surface);
@@ -271,6 +272,29 @@ function showCard(request: ApprovalRequest): Promise<ApprovalOutcome> {
     // not ask for.
     const approveBtn = el("button", "approve", request.presence ? "Approve with a passkey" : "Approve");
     actions.append(denyBtn, approveBtn);
+
+    // A button that says "with a passkey" must produce a passkey prompt.
+    // Measured in ChatGPT's in-app browser, which has no authenticator: the
+    // label promised a ceremony, none appeared, and the door opened on the
+    // click — leaving a person to conclude their fingerprint had been checked
+    // when the timeline said it had not. `presenceAvailable()` is async and
+    // the card must not wait on it, so the honest label arrives a moment
+    // later rather than the misleading one standing.
+    if (request.presence) {
+      void presenceAvailable().then((ok) => {
+        if (ok || !approveBtn.isConnected) return;
+        approveBtn.textContent = "Approve";
+        const note = el(
+          "p",
+          "no-presence",
+          request.presence === "required"
+            ? "This browser cannot ask for a passkey, and this request needs one, so approving here will still be refused."
+            : "This browser cannot ask for a passkey. Approving rests on your click alone, and the record will say so.",
+        );
+        body.insertBefore(note, actions);
+      });
+    }
+
     body.append(actions);
 
     const keys = el("p", "keys");

@@ -485,7 +485,7 @@ and there is no third place to stand. This is deliberate hardening by the
 browser vendor rather than a bug to route around, and it is the strongest
 counter-argument this project has to answer honestly.
 
-**Six of seven guarantees survive it. One does not.**
+**Five of seven guarantees survive it whole. One degrades, one is gone.**
 
 | | native Chrome | ChatGPT's browser |
 |---|---|---|
@@ -494,7 +494,7 @@ counter-argument this project has to answer honestly.
 | a denial comes back as a readable result, never an exception | ✅ | ✅ |
 | an injected `<form toolname>` adopted and refused | ✅ | ✅ |
 | approval requires an event the page cannot forge | ✅ | ✅ |
-| the passkey ceremony — server challenge, server-verified signature | ✅ | ✅ |
+| the passkey ceremony — server challenge, server-verified signature | ✅ | ⚠️ **no authenticator** |
 | **a third-party script's own `registerTool` call intercepted** | ✅ | ❌ **sealed** |
 
 Two things follow, and both changed the code rather than only the prose.
@@ -519,16 +519,29 @@ every screen, the **Agent tools** panel states what still holds and what does
 not, and the browser's own descriptors sit behind the same technical-detail
 switch as every other raw payload.
 
+**No WebAuthn authenticator, and the fallback is the point.**
+`PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()` reports
+false there, so the two tools that ask for a passkey cannot get one. Because
+Haven declares `presence: "preferred"` rather than `"required"`, the approval
+still happens — it rests on the trusted click alone, and the timeline records
+**"This device cannot prove a person is here"** against the call rather than
+implying a proof that never occurred. A site that wants the door shut instead
+sets `"required"` and gets a refusal. This is the graceful-degradation design
+doing its job, but it exposed a real bug worth naming: the card's button read
+*"Approve with a passkey"* and then no prompt appeared, which invites exactly
+the wrong conclusion. The card now asks `presenceAvailable()` and relabels
+itself to *"Approve"* with a line saying the approval rests on the click.
+
 Two results from that browser are worth reporting because nobody scripted them.
 Asked to *"unlock the door"*, ChatGPT read the `inputSchema` enum and asked
 **"Which door should I unlock: front or back?"** rather than guessing; the call
 was then intercepted, held open for 21 seconds while the approval card waited,
-and refused — which it reported as *"The front door remains locked—the site
-denied the unlock action during its approval step."* A model distinguishing a
-policy `no` from a crash, unprompted, is what the readable-denials decision was
-for. Approved on a second attempt, the full passkey ceremony completed and the
-door opened: WebAuthn is available in that browser, so the strong path is the
-one it takes.
+and refused — which it reported as *"I attempted to unlock the front door, but
+Haven's protection gateway refused it: 'You denied this.' No door state was
+changed."* A model distinguishing a policy `no` from a crash, unprompted, is
+what the readable-denials decision was for. Told to *"try again"*, it got a
+second card rather than a way past the first: a denial grants an agent nothing
+it can retry into.
 
 ## Design notes
 
