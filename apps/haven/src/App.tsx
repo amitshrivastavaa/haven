@@ -26,6 +26,26 @@ function hasWebMCP(): boolean {
   return Boolean(document.modelContext ?? navigator.modelContext);
 }
 
+/**
+ * Views are paths, not query flags: `/access`, not `/?access`. A query string
+ * says "same page, different parameters" and these are different pages — which
+ * is also how they read to anyone looking at the address bar or a shared link.
+ * Home is `/`.
+ *
+ * This needs the host to serve index.html for unknown paths. netlify.toml has
+ * the catch-all; the function keeps `/api/presence` because Netlify matches
+ * functions before redirects.
+ */
+const VIEW_IDS: View[] = ["home", "access", "history", "why"];
+
+function viewFromUrl(): View {
+  const segment = location.pathname.replace(/^\/+|\/+$/g, "");
+  const match = VIEW_IDS.find((id) => id !== "home" && id === segment);
+  if (match) return match;
+  // `?why` shipped for one deploy before the paths existed. Cheap to honour.
+  return new URLSearchParams(location.search).has("why") ? "why" : "home";
+}
+
 export function App() {
   const [house, setHouse] = useState<House>(initialHouse);
   const [protection, setProtection] = useState(true);
@@ -35,12 +55,30 @@ export function App() {
   const [agent, setAgent] = useState<{ at: Spot; blocked: boolean } | null>(null);
   const [busy, setBusy] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
-  // The app is the landing view. `?why` deep-links the argument for anyone who
-  // wants to send someone straight to it; `?app` stays valid as a no-op, so
-  // links already written against it keep working.
-  const [view, setView] = useState<View>(() =>
-    new URLSearchParams(location.search).has("why") ? "why" : "home",
-  );
+  // The app is the landing view, and every other view has an address:
+  // `/access`, `/history`, `/why`. Without this the nav changed what you saw
+  // and not where you were, so a view could not be linked or bookmarked, Back
+  // left the site instead of going back, and a reload always dropped you on
+  // Home. `?app` stays valid as a no-op, so links already written against it
+  // keep working.
+  const [view, setView] = useState<View>(viewFromUrl);
+
+  /** Change view AND address. One is not navigation without the other. */
+  const go = useCallback((next: View) => {
+    setView(next);
+    const url = new URL(location.href);
+    url.pathname = next === "home" ? "/" : `/${next}`;
+    // A stale `?why` from an older link would otherwise outvote the new path.
+    url.searchParams.delete("why");
+    history.pushState({ view: next }, "", url);
+  }, []);
+
+  // Back and Forward are navigation too — the browser's copy of it.
+  useEffect(() => {
+    const onPop = () => setView(viewFromUrl());
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
   const [demoOpen, setDemoOpen] = useState(false);
 
   const webmcp = useMemo(hasWebMCP, []);
@@ -462,9 +500,9 @@ export function App() {
         onProtection={toggleProtection}
         summary={summary}
         view={view}
-        onView={setView}
+        onView={go}
         refused={refused}
-        onPitch={() => setView("why")}
+        onPitch={() => go("why")}
       />
 
       {!protection && (
@@ -571,7 +609,7 @@ export function App() {
 
       {view === "history" && <History />}
 
-      {view === "why" && <Pitch onEnter={() => setView("home")} />}
+      {view === "why" && <Pitch onEnter={() => go("home")} />}
 
       {rulesOpen && <Rules onClose={() => setRulesOpen(false)} />}
       <Demo

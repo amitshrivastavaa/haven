@@ -25,3 +25,12 @@
   for = "/grenz-install.js"
   [headers.values]
     Cache-Control = "public, max-age=0, must-revalidate"
+
+# Views are paths (/access, /history, /why) and the app resolves them itself,
+# so every unknown path has to arrive as index.html rather than a 404. This
+# does NOT shadow /api/presence: Netlify matches functions before redirects,
+# and that function declares its own path in-file.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
