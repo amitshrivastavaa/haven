@@ -35,11 +35,13 @@ export function App() {
   const [agent, setAgent] = useState<{ at: Spot; blocked: boolean } | null>(null);
   const [busy, setBusy] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
-  const [view, setView] = useState<View>("home");
-  const [demoOpen, setDemoOpen] = useState(false);
-  const [entered, setEntered] = useState(
-    () => new URLSearchParams(location.search).has("app"),
+  // The app is the landing view. `?why` deep-links the argument for anyone who
+  // wants to send someone straight to it; `?app` stays valid as a no-op, so
+  // links already written against it keep working.
+  const [view, setView] = useState<View>(() =>
+    new URLSearchParams(location.search).has("why") ? "why" : "home",
   );
+  const [demoOpen, setDemoOpen] = useState(false);
 
   const webmcp = useMemo(hasWebMCP, []);
   const polyfilled = useMemo(() => Boolean((window as any).__grenzPolyfilled), []);
@@ -448,24 +450,9 @@ export function App() {
     },
   ];
 
-  // The pitch is a view, not a page. Every tool above is already registered on
-  // the document while it shows, so an agent that connects here sees the whole
+  // The pitch is a view, not a page. Every tool is registered on the document
+  // while it shows, so an agent that connects there still sees the whole
   // governed surface — which is the thing the pitch claims.
-  if (!entered) {
-    return (
-      <div className="wrap">
-        {!webmcp && (
-          <Banner kind="info">
-            This browser has no WebMCP. Open this in ChatGPT's browser, or enable{" "}
-            <code>chrome://flags/#enable-webmcp-testing</code> in Chrome, to drive the house with a
-            real assistant. Everything below is true either way.
-          </Banner>
-        )}
-        <Pitch onEnter={() => setEntered(true)} />
-      </div>
-    );
-  }
-
   return (
     <div className="wrap">
       <Head
@@ -477,7 +464,7 @@ export function App() {
         view={view}
         onView={setView}
         refused={refused}
-        onPitch={() => setEntered(false)}
+        onPitch={() => setView("why")}
       />
 
       {!protection && (
@@ -499,8 +486,11 @@ export function App() {
       {!webmcp && (
         <Banner kind="info">
           No assistant can reach this page in this browser. Open it in ChatGPT's browser, or enable{" "}
-          <code>chrome://flags/#enable-webmcp-testing</code> in Chrome. Until then, the box below
-          goes through exactly the same house rules.
+          <code>chrome://flags/#enable-webmcp-testing</code> in Chrome.{" "}
+          {/* The assistant box only exists on Home, so only Home can promise it. */}
+          {view === "home"
+            ? "Until then, the box below goes through exactly the same house rules."
+            : "Everything here is true either way."}
         </Banner>
       )}
 
@@ -580,6 +570,8 @@ export function App() {
       )}
 
       {view === "history" && <History />}
+
+      {view === "why" && <Pitch onEnter={() => setView("home")} />}
 
       {rulesOpen && <Rules onClose={() => setRulesOpen(false)} />}
       <Demo

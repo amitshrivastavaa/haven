@@ -4,12 +4,21 @@ import { SCENES } from "./house";
 import { RULE_COPY, rules } from "./policy";
 import type { DoorbellEvent, SceneId } from "./types";
 
-export type View = "home" | "access" | "history";
+export type View = "home" | "access" | "history" | "why";
 
+/**
+ * The house's own three views, and then the one that is not about the house.
+ *
+ * "Why Grenz" used to BE the landing page, which put a pitch in front of anyone
+ * following a demo link — including a judge with three minutes and a hundred
+ * entries. The app opens first now, and the argument lives one click away where
+ * someone who wants it can find it.
+ */
 const VIEWS: { id: View; label: string }[] = [
   { id: "home", label: "Home" },
   { id: "access", label: "Access" },
   { id: "history", label: "History" },
+  { id: "why", label: "Why Grenz" },
 ];
 
 export function Head({
