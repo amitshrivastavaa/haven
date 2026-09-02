@@ -530,6 +530,19 @@ export function App() {
         </Banner>
       )}
 
+      {/* Never in the header line: that line truncates, and this is the one
+          state that must not be missed — an agent can see the site's tools
+          while the interception that governs OTHER scripts is not attached. */}
+      {webmcp && !g.isTakeoverInstalled() && (
+        <Banner kind="danger">
+          This browser exposes WebMCP on a surface Grenz could not take over, so it never claimed{" "}
+          <code>registerTool</code>. Haven's own tools are still governed — they are wrapped before
+          the browser sees them — but a <strong>third-party script registering a tool here would
+          not be intercepted</strong>. Everything else on this page is true; that one guarantee is
+          not.
+        </Banner>
+      )}
+
       {!webmcp && (
         <Banner kind="info">
           No assistant can reach this page in this browser. Open it in ChatGPT's browser, or enable{" "}

@@ -90,9 +90,12 @@ code { font-family: var(--mono); }
   background: var(--accent);
 }
 .head h1 { margin: 0; font-family: var(--display); font-size: 23px; font-weight: 800; letter-spacing: -.035em; }
+/* Wraps rather than ellipsizes. Clipping put "assistant connected" behind a
+   "…" below 1000px — which is the width of ChatGPT's in-app browser pane, so
+   the connection status was hidden in precisely the browser it describes. */
 .head .sub {
   margin: 1px 0 0; color: var(--faint); font-size: 12.5px;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  overflow-wrap: anywhere;
 }
 
 /* Views. The tools stay registered whichever of these is showing — they live
