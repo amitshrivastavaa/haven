@@ -535,11 +535,14 @@ export function App() {
           while the interception that governs OTHER scripts is not attached. */}
       {webmcp && !g.isTakeoverInstalled() && (
         <Banner kind="danger">
-          This browser exposes WebMCP on a surface Grenz could not take over, so it never claimed{" "}
-          <code>registerTool</code>. Haven's own tools are still governed — they are wrapped before
-          the browser sees them — but a <strong>third-party script registering a tool here would
-          not be intercepted</strong>. Everything else on this page is true; that one guarantee is
-          not.
+          This browser seals WebMCP against every script on the page, Grenz included:{" "}
+          <code>document.modelContext</code> cannot be redefined and the object it holds is frozen,
+          so <code>registerTool</code> could not be claimed. Haven's own tools are still governed —
+          they are wrapped before the browser sees them — and an injected <code>&lt;form
+          toolname&gt;</code> is still adopted and governed, because adoption strips the attribute
+          rather than intercepting a call. What is lost is one thing: a{" "}
+          <strong>third-party script calling <code>registerTool</code> directly would not be
+          intercepted</strong>.
           {/* The reason, in the browser's own words. Every hardened WebMCP
               implementation looks identical from the outside, and the browsers
               that harden it are the ones nobody can attach a debugger to — so

@@ -297,8 +297,26 @@ export function install(): boolean {
   // The imperative surface is only half of WebMCP. Declarative `<form
   // toolname=…>` tools never pass through `registerTool`, so patching alone
   // leaves them ungoverned — see declarative.ts.
-  if (state.patched.length > 0 && !state.stopDeclarative) {
-    state.stopDeclarative = adoptDeclarativeTools(modelContext());
+  //
+  // Deliberately NOT gated on the takeover. Adoption does not need to own
+  // `registerTool`: it strips the attribute, which unregisters the browser's
+  // own tool, and registers a governed one in its place. That works on a
+  // surface Grenz could not claim — which matters, because a hardened browser
+  // is exactly where an attacker who can write HTML but not run script still
+  // gets a tool registered. When the surface IS ours the wrapping happens
+  // inside the patch; when it is not, it happens here, on the way through.
+  const mc = modelContext();
+  if (mc && !state.stopDeclarative) {
+    state.stopDeclarative = adoptDeclarativeTools(
+      state.patched.length > 0
+        ? mc
+        : {
+            // A form is never first-party: the site's own HTML and an injected
+            // form are indistinguishable at this layer.
+            registerTool: (tool, options) => mc.registerTool(applyWrapper(tool, options, true), options),
+            getTools: mc.getTools?.bind(mc),
+          },
+    );
   }
 
   return state.patched.length > 0;

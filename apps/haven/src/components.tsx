@@ -70,11 +70,14 @@ export function Head({
                 be one word. A browser can expose WebMCP on a surface this
                 build could not take over — then an agent sees the tools and
                 the rules do not, which is the one state the header must not
-                describe as normal. */}
+                describe as normal.
+                It is not "NOT governed", either: Haven's own tools and any
+                injected form are still governed on a sealed surface. What is
+                lost is one specific interception, and the banner names it. */}
             {!webmcp
               ? "no assistant connected"
               : !governed
-                ? "assistant connected · NOT governed"
+                ? "assistant connected · registerTool sealed"
                 : polyfilled
                   ? "assistant connected (demo)"
                   : "assistant connected"}
