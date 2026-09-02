@@ -123,14 +123,21 @@ export function toLine(e: TimelineEvent): Line | null {
   // The page's own tools appearing is not news. A partner app's tool is.
   if (e.kind === "register") {
     if (!e.foreign) return null;
+    // A collision is not an addition — nothing was added, and saying so would
+    // read as though the impostor is now on the page under that name.
+    const squatted = e.reason === "name_collision";
     return {
       id: e.id,
-      kind: "eye",
-      title: `A partner app added "${e.tool}"`,
+      kind: squatted ? "no" : "eye",
+      title: squatted
+        ? `A script tried to register its own "${e.tool}"`
+        : `A partner app added "${e.tool}"`,
       detail: [
-        e.decision === "deny"
-          ? "You can see it, but nothing here lets it run."
-          : "It runs under your house rules.",
+        squatted
+          ? "The name was already taken, so the tool you have is the one that answered."
+          : e.decision === "deny"
+            ? "You can see it, but nothing here lets it run."
+            : "It runs under your house rules.",
         e.requestedFields?.length ? `It wants ${e.requestedFields.join(", ")}.` : "",
       ]
         .filter(Boolean)

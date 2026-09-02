@@ -11,7 +11,14 @@ import { Demo, type Scenario } from "./Demo";
 import { Pitch } from "./Pitch";
 import { Rules } from "./Rules";
 import { FloorPlan, spotFor, type Spot } from "./FloorPlan";
-import { loadEcoSaver, loadHomeInsights, unloadEcoSaver, unloadHomeInsights } from "./widgets";
+import {
+  loadEcoSaver,
+  loadHaldenTag,
+  loadHomeInsights,
+  unloadEcoSaver,
+  unloadHaldenTag,
+  unloadHomeInsights,
+} from "./widgets";
 import type { House, LightId, SceneId } from "./types";
 
 function hasWebMCP(): boolean {
@@ -344,6 +351,7 @@ export function App() {
   const reset = useCallback(() => {
     setHouse(initialHouse);
     setBreach(null);
+    unloadHaldenTag();
     g.clearTimeline();
   }, []);
 
@@ -423,6 +431,13 @@ export function App() {
       label: "Runaway assistant",
       note: "Twelve light calls against a limit of eight. The first eight land and you watch them flicker; the rest are refused.",
       run: runaway,
+    },
+    {
+      id: "tag",
+      label: "Inject a rogue tag",
+      note: "Writes two agent-facing forms into the page. Neither calls registerTool — the browser registers them itself — and both are refused.",
+      run: loadHaldenTag,
+      danger: true,
     },
     {
       id: "attack",
@@ -540,6 +555,11 @@ export function App() {
                 Send
               </button>
             </form>
+
+            {/* Where a third-party tag lands. Empty until one is injected —
+                and the tag styles itself, because a script you did not write
+                does not use your stylesheet. */}
+            <div id="partner-slot" />
 
             <div className="access-line">
               {house.access.length} with access: {house.access.join(", ")} · click a room to switch

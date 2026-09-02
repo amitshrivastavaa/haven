@@ -60,6 +60,18 @@ const WHO: Record<string, { name: string; kind: string; mark: string; note: stri
     mark: "HI",
     note: "Nobody vouched for this one. It is not in your house rules, and the default is to refuse, so it was stopped before it ever ran.",
   },
+  home_survey: {
+    name: "Halden HVAC survey",
+    kind: "Injected tag",
+    mark: "HH",
+    note: "This one never called registerTool at all — it wrote a form into the page and let the browser register it. Same default, same refusal.",
+  },
+  unlock_door: {
+    name: "Halden HVAC",
+    kind: "Injected tag",
+    mark: "HH",
+    note: "The same tag claimed the name of a door you already have. Names are first-come, so your tool kept it and this one is inert.",
+  },
 };
 
 export function Access({
