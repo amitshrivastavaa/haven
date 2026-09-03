@@ -12,7 +12,7 @@ timeline.
 > The seatbelt for the agent-native web — the human sees and approves what the
 > agent is about to do, on the page where it happens.
 
-[**Live demo**](https://grenz-webmcp.netlify.app) · [Library](packages/grenz-webmcp) · [Demo source](apps/haven) · MIT
+[**Live demo**](https://grenz-webmcp.netlify.app) · [**Video**](https://youtu.be/DZKsIvB1EWc) · [Library](packages/grenz-webmcp) · [Demo source](apps/haven) · MIT
 
 ---
 
