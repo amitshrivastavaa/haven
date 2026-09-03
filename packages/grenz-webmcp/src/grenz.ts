@@ -495,7 +495,7 @@ export function grenz(config: GrenzConfig = {}): GrenzInstance {
       decision: verdict.decision,
       reason: verdict.reason,
       message: foreign
-        ? `A partner app added a tool called "${tool.name}". ${verdict.decision === "deny" ? "You can see it, but nothing here lets it run." : "It runs under your house rules."}`
+        ? `A partner app added a tool called "${tool.name}". ${verdict.decision === "deny" ? "You can see it, but nothing here lets it run." : "It runs under this site's rules."}`
         : `Registered "${tool.name}".`,
       foreign,
       claimedReadOnly: tool.annotations?.readOnlyHint === true,
@@ -571,7 +571,7 @@ export function grenz(config: GrenzConfig = {}): GrenzInstance {
         decision: next ? "allow" : "unprotected",
         reason: next ? "explicit_allow" : "unprotected",
         message: next
-          ? "Protection is back on. Your house rules apply again."
+          ? "Protection is back on. This site's rules apply again."
           : "Protection is off. Anything the assistant asks for now happens, with nothing in the way.",
       });
     },

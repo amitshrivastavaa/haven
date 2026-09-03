@@ -229,7 +229,7 @@ function showCard(request: ApprovalRequest): Promise<ApprovalOutcome> {
     head.append(countdown);
 
     const body = el("div", "body");
-    body.append(el("p", "ask", "Your assistant is asking to do something in your home."));
+    body.append(el("p", "ask", "Your assistant is asking to do something here."));
 
     // The site's phrasing of this call when there is one, its title for the
     // tool otherwise. The machine name used to sit here in mono; it told the
@@ -488,8 +488,10 @@ const BADGE: Record<TimelineEvent["decision"], { cls: string; label: string }> =
  * Reason codes, said out loud.
  *
  * The codes themselves are the vocabulary a developer greps for, so they are
- * not thrown away — they move behind the disclosure triangle. What a household
- * member reads is a sentence about their own house.
+ * not thrown away — they move behind the disclosure triangle. What everyone
+ * else reads is a sentence. The wording stays neutral about what the site is:
+ * this component ships to a smart home and a deploy console alike, and copy
+ * that assumes one of them is wrong on the other.
  */
 const REASON: Record<ReasonCode, string> = {
   approval_synthetic: "something clicked Approve that was not you",
@@ -499,10 +501,10 @@ const REASON: Record<ReasonCode, string> = {
   presence_unavailable: "this device cannot prove a person is here",
   name_collision: "something else already registered under that name",
   out_of_reach: "registered outside this document, where no rule could reach it",
-  explicit_allow: "a house rule allows this",
-  explicit_deny: "a house rule says never",
-  approval_required: "a house rule says ask me first",
-  no_matching_allow: "no house rule covers this",
+  explicit_allow: "a site rule allows this",
+  explicit_deny: "a site rule says never",
+  approval_required: "a site rule says ask me first",
+  no_matching_allow: "no site rule covers this",
   approval_granted: "you said yes",
   approval_denied: "you said no",
   approval_expired: "nobody answered in time",
@@ -541,7 +543,7 @@ export function mountTimelineInto(element: HTMLElement, g: GrenzInstance): () =>
       empty.append(el("strong", undefined, "Your assistant hasn't done anything yet."));
       empty.append(
         document.createTextNode(
-          "When it touches something in your home, it shows up here — what it did, whether it was allowed, and why.",
+          "When it touches something here, it shows up in this list — what it did, whether it was allowed, and why.",
         ),
       );
       list.append(empty);
@@ -586,7 +588,7 @@ function renderOwnTools(events: TimelineEvent[]): HTMLElement {
   const head = el("div", "row-top");
   head.append(
     el("span", "badge b-open", "ready"),
-    el("span", "tool", `${events.length} tool${events.length === 1 ? "" : "s"} this home offers`),
+    el("span", "tool", `${events.length} tool${events.length === 1 ? "" : "s"} this page offers`),
     el("span", "time", new Date(events[events.length - 1]!.at).toLocaleTimeString()),
   );
   row.append(head);

@@ -1,6 +1,6 @@
 {
   "name": "grenz-webmcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Deny-by-default policy layer for WebMCP tools: registration takeover, human approval, audit timeline.",
   "license": "MIT",
   "homepage": "https://grenz-webmcp.netlify.app",
