@@ -21,3 +21,10 @@ VOICEOVER.md
 .env
 .env.*
 !.env.example
+SUBMISSION-STORY.md
+voiceover/
+READ-ALOUD.md
+NARRATION-BRIEF.md
+PASTE-BLOCKS.md
+AMIT_SCRIPT.md
+Skill.md

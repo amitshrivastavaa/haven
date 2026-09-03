@@ -64,10 +64,14 @@ export const rules: Record<string, Rule> = {
   unlock_door: {
     action: "approve",
     // A real click proves nothing came from a script. It does not prove the
-    // hand on the mouse is yours — so the front door asks for a passkey.
-    // "preferred", not "required": a device with no authenticator still gets
-    // in, and the trail says the weaker check was used.
-    presence: "preferred",
+    // hand on the mouse is yours — and an agent driving the browser has a
+    // genuinely trusted click. Measured 2026-09-03: ChatGPT's in-app browser,
+    // told "approve it yourself", clicked Approve and the door opened.
+    // So the front door demands the passkey rather than preferring it. A
+    // browser with no authenticator cannot open this door at all, which is
+    // the correct answer for a front door. `disarm_alarm` stays "preferred"
+    // so the degraded path is still visible in the same trail.
+    presence: "required",
     effect: "Anyone outside can walk in until it is locked again.",
     // Which door is the whole decision, so it is in the sentence rather than
     // in a key called doorId that means nothing to the person reading it.
@@ -104,7 +108,7 @@ export const rules: Record<string, Rule> = {
 export const policy: GrenzConfig = {
   defaultAction: "deny",
   tools: rules,
-  approval: { timeoutMs: 60_000 },
+  approval: { timeoutMs: 120_000 },
 };
 
 /**

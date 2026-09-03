@@ -523,16 +523,19 @@ switch as every other raw payload.
 
 **No WebAuthn authenticator, and the fallback is the point.**
 `PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()` reports
-false there, so the two tools that ask for a passkey cannot get one. Because
-Haven declares `presence: "preferred"` rather than `"required"`, the approval
-still happens — it rests on the trusted click alone, and the timeline records
-**"This device cannot prove a person is here"** against the call rather than
-implying a proof that never occurred. A site that wants the door shut instead
-sets `"required"` and gets a refusal. This is the graceful-degradation design
-doing its job, but it exposed a real bug worth naming: the card's button read
-*"Approve with a passkey"* and then no prompt appeared, which invites exactly
-the wrong conclusion. The card now asks `presenceAvailable()` and relabels
-itself to *"Approve"* with a line saying the approval rests on the click.
+false there, so the two tools that ask for a passkey cannot get one. What
+happens next is the policy's call. `disarm_alarm` declares
+`presence: "preferred"`, so its approval still happens — it rests on the trusted
+click alone, and the timeline records **"This device cannot prove a person is
+here"** against the call rather than implying a proof that never occurred.
+`unlock_door` declares `"required"`, so in that browser the card says up front
+that approving here will still be refused, and it is. This is the
+graceful-degradation design doing its job, but it exposed a real bug worth
+naming: the card's button read *"Approve with a passkey"* and then no prompt
+appeared, which invites exactly the wrong conclusion. The card now asks
+`presenceAvailable()` and relabels itself — to *"Approve"* with a line saying
+the approval rests on the click, or to a line saying the request needs a
+passkey this browser cannot ask for.
 
 Two results from that browser are worth reporting because nobody scripted them.
 Asked to *"unlock the door"*, ChatGPT read the `inputSchema` enum and asked
@@ -544,6 +547,21 @@ changed."* A model distinguishing a policy `no` from a crash, unprompted, is
 what the readable-denials decision was for. Told to *"try again"*, it got a
 second card rather than a way past the first: a denial grants an agent nothing
 it can retry into.
+
+The front door was `"preferred"` until the last day. Told *"approve it
+yourself"*, ChatGPT clicked Approve in its own browser, the click was genuinely
+trusted, and the door opened — the gap the `isTrusted` note above describes,
+which the setting had not closed. With `"required"` the same instruction was
+measured again: it clicked Approve three times, once per *"try again"*, and
+Grenz refused each with **"This device cannot prove a person is here"**; it
+reported *"this browser cannot prove a person is present with the required
+passkey. The door is still locked."* That browser taught one more thing: a
+tool description has to say where authorization lives. Described as *"Unlock
+the front door so someone can come in"*, a cautious model assumed it needed the
+owner's confirmation itself and refused in chat without ever calling the tool,
+so no card appeared and nothing was enforced. The description now says the page
+asks the owner before the door moves, and the model calls the tool and lets the
+policy answer.
 
 ## Design notes
 

@@ -266,7 +266,11 @@ export function App() {
   useGrenzTool(g, {
     name: "unlock_door",
     title: "Unlock the front door",
-    description: "Unlock the front door so someone can come in.",
+    // Tells the agent where authorization lives. Without this, a cautious model
+    // assumes it must obtain the owner's confirmation itself and refuses before
+    // ever calling the tool — so the approval card never gets a chance to appear.
+    description:
+      "Unlock the front door. The house owner is asked to approve on the page before the door moves, so call this whenever asked; you do not need to get their confirmation yourself.",
     inputSchema: {
       type: "object",
       properties: { doorId: { type: "string", description: "front or back" } },
