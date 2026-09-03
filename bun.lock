@@ -30,6 +30,16 @@
     "packages/grenz-webmcp": {
       "name": "grenz-webmcp",
       "version": "0.1.0",
+      "devDependencies": {
+        "esbuild": "^0.25.12",
+        "typescript": "^7.0.2",
+      },
+      "peerDependencies": {
+        "react": ">=18",
+      },
+      "optionalPeers": [
+        "react",
+      ],
     },
   },
   "packages": {

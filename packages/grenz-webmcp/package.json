@@ -3,23 +3,13 @@
   "version": "0.1.0",
   "description": "Deny-by-default policy layer for WebMCP tools: registration takeover, human approval, audit timeline.",
   "license": "MIT",
-  "type": "module",
-  "sideEffects": [
-    "./src/install.ts"
-  ],
-  "exports": {
-    ".": "./src/index.ts",
-    "./react": "./src/react.tsx",
-    "./install": "./src/install.ts"
+  "homepage": "https://grenz-webmcp.netlify.app",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/amitshrivastavaa/haven.git",
+    "directory": "packages/grenz-webmcp"
   },
-  "files": [
-    "src",
-    "dist"
-  ],
-  "scripts": {
-    "build": "bun build ./src/install.ts --outfile=./dist/grenz-install.js --format=iife --target=browser --minify",
-    "spike": "bun build ./spike/spike.ts --outfile=./spike/spike.js --format=iife --target=browser && bun run build && cp dist/grenz-install.js spike/grenz-install.js && echo 'Now serve ./spike and open takeover-spike.html'"
-  },
+  "bugs": "https://github.com/amitshrivastavaa/haven/issues",
   "keywords": [
     "webmcp",
     "modelcontext",
@@ -27,5 +17,49 @@
     "policy",
     "security",
     "agent"
-  ]
+  ],
+  "type": "module",
+  "sideEffects": [
+    "./src/install.ts",
+    "./dist/install.js",
+    "./dist/grenz-install.js"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./react": {
+      "types": "./dist/react.d.ts",
+      "import": "./dist/react.js"
+    },
+    "./install": {
+      "types": "./dist/install.d.ts",
+      "import": "./dist/install.js"
+    },
+    "./dist/grenz-install.js": "./dist/grenz-install.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "esbuild src/index.ts src/react.tsx src/install.ts --bundle --format=esm --platform=browser --target=es2022 --external:react --outdir=dist && esbuild src/install.ts --bundle --format=iife --platform=browser --target=es2022 --minify --outfile=dist/grenz-install.js && tsc -p tsconfig.build.json && bun scripts/fix-dts.ts",
+    "spike": "bun build ./spike/spike.ts --outfile=./spike/spike.js --format=iife --target=browser && bun run build && cp dist/grenz-install.js spike/grenz-install.js && echo 'Now serve ./spike and open takeover-spike.html'",
+    "prepublishOnly": "bun run build && cd ../.. && bun test"
+  },
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.12",
+    "typescript": "^7.0.2"
+  }
 }

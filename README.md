@@ -74,7 +74,7 @@ attack tool lies about.
 ## Quickstart
 
 ```bash
-bun add grenz-webmcp   # not on npm yet — until then, clone and `bun install`
+npm i grenz-webmcp
 ```
 
 ```html
