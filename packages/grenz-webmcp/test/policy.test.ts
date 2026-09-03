@@ -110,6 +110,24 @@ describe("step 3 — argument constraints", () => {
     expect(checkConstraints(rules, { sort: "asc", limit: 10 })).toBeNull();
   });
 
+  test("a bound is not skipped when the agent sends the wrong type", () => {
+    // The bypass this guards: `max: 8` used to be checked only when the value
+    // was already a number, so an agent that quoted it walked straight past.
+    const rules = { replicas: { min: 0, max: 8 } };
+    expect(checkConstraints(rules, { replicas: "40" })?.message).toContain("must be a number");
+    expect(checkConstraints(rules, { replicas: true })?.message).toContain("must be a number");
+    expect(checkConstraints(rules, { replicas: [4] })?.message).toContain("must be a number");
+    expect(checkConstraints(rules, { replicas: Number.NaN })?.message).toContain("must be a number");
+    expect(checkConstraints(rules, { replicas: 4 })).toBeNull();
+    expect(checkConstraints(rules, { replicas: 0 })).toBeNull();
+  });
+
+  test("a pattern is not skipped when the agent sends a number", () => {
+    const rules = { version: { pattern: "v\\d+" } };
+    expect(checkConstraints(rules, { version: 123 })?.message).toContain("must be text");
+    expect(checkConstraints(rules, { version: "v12" })).toBeNull();
+  });
+
   test("non-object input does not throw", () => {
     expect(checkConstraints(c, undefined)?.reason).toBe("constraint"); // doorId required
     expect(checkConstraints(undefined, { anything: true })).toBeNull();

@@ -145,12 +145,22 @@ export function checkConstraints(
       return deny(`"${key}" must be one of: ${rule.enum.join(", ")}.`);
     }
 
-    if (typeof value === "number") {
+    // A bound the site wrote is a statement about a number, so a value that is
+    // not one fails it rather than skipping it. Checking the type only when it
+    // happens to be right made every numeric constraint bypassable by quoting
+    // the value: `max: 8` let `"40"` through, and NaN passed both comparisons
+    // because every comparison against NaN is false. The same applies to
+    // `pattern`, which a number used to slip past entirely.
+    if (rule.min !== undefined || rule.max !== undefined) {
+      if (typeof value !== "number" || Number.isNaN(value)) {
+        return deny(`"${key}" must be a number.`);
+      }
       if (rule.min !== undefined && value < rule.min) return deny(`"${key}" must be at least ${rule.min}.`);
       if (rule.max !== undefined && value > rule.max) return deny(`"${key}" must be at most ${rule.max}.`);
     }
 
-    if (rule.pattern !== undefined && typeof value === "string") {
+    if (rule.pattern !== undefined) {
+      if (typeof value !== "string") return deny(`"${key}" must be text.`);
       // Anchored: a constraint that matches a substring is not a constraint.
       if (!new RegExp(`^(?:${rule.pattern})$`).test(value)) {
         return deny(`"${key}" does not match the required format.`);
